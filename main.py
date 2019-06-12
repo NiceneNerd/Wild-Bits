@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-
-# Form implementation generated from reading ui file '.\main.ui'
-#
-# Created by: PyQt5 UI code generator 5.11.3
-#
-# WARNING! All changes made in this file will be lost!
-
 import glob
 import sys
+import shutil
 import os
+import io
 import zlib
 import platform
 import subprocess
@@ -41,10 +35,6 @@ def format_bytes(size):
         n += 1
     print_size = f'{size:.3f}' if n > 0 else str(size)
     return f'{print_size} {power_labels[n]}'
-
-class YamlHighighter(QtGui.QSyntaxHighlighter):
-    def __init__(self, *args, **kwargs):
-        return super().__init__(*args, **kwargs)
 
 class AddRstbDialog(QtWidgets.QDialog, Ui_dlgAddRstb):
     def __init__(self, wiiu, *args, **kwargs):
@@ -132,6 +122,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.btnNewYaml.clicked.connect(self.NewYaml_Clicked)
         self.btnOpenYaml.clicked.connect(self.OpenYaml_Clicked)
+        self.btnYamlEditor.clicked.connect(self.YamlEditor_Clicked)
+        self.btnExportYaml.clicked.connect(self.ExportYaml_Clicked)
+        self.btnSaveYaml.clicked.connect(self.SaveYaml_Clicked)
+        self.btnSaveAsYaml.clicked.connect(self.SaveAsYaml_Clicked)
 
         self.txtFilterRstb.editingFinished.connect(self.FilterRstb)
 
@@ -515,11 +509,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.txtYaml.setEnabled(True)
 
     def NewYaml_Clicked(self):
+        self.open_yaml = ''
+        self.open_yaml_path = ''
+        self.txtYaml.setText('')
         self.EnableYamlButtons()
 
     def OpenYaml_Clicked(self):
         fileName = QFileDialog.getOpenFileName(self, 'Open BYAML or AAMP File')[0]
         if fileName:
+            self.open_yaml_path = fileName
             with open(fileName, 'rb') as rf:
                 input_data = rf.read()
             if input_data[0:4] == b'Yaz0':
@@ -540,6 +538,76 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.txtYaml.setText(dumped)
                 self.txtRstbYaml.setText(str(rstb.SizeCalculator().calculate_file_size(fileName, open_byml._be, False)))
                 self.EnableYamlButtons()
+    
+    def YamlEditor_Clicked(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile('w',suffix='.yml',encoding='utf-8',delete=False) as temp:
+            self.temp_yaml = temp.name
+            temp.write(self.txtYaml.toPlainText())
+        self.temp_watcher = QtCore.QFileSystemWatcher([self.temp_yaml])
+        self.temp_watcher.fileChanged.connect(self.TempFile_Changed)
+        import webbrowser
+        webbrowser.open(self.temp_yaml)
+
+    def TempFile_Changed(self):
+        with open(self.temp_yaml, 'r') as temp:
+            self.txtYaml.setText(temp.read())
+        if self.open_yaml == 'byml':
+            self.save_yaml_file(self.temp_yaml + '.byaml', False)
+            self.txtRstbYaml.setText(str(rstb.SizeCalculator().calculate_file_size(self.temp_yaml + '.byaml', self.chkBeYaml.isChecked(), False)))
+
+    def ExportYaml_Clicked(self):
+        fileName = QFileDialog.getSaveFileName(self, 'Export YAML', '' ,'YAML File (*.yml; *.yaml);;All Files (*)')[0]
+        if fileName:
+            with open(fileName, 'w') as sf:
+                sf.write(self.txtYaml.toPlainText())
+
+    def SaveYaml_Clicked(self):
+        if self.open_yaml_path == '' or self.open_yaml == '':
+            self.SaveAsYaml_Clicked()
+        if self.open_yaml == 'aamp':
+            with open(self.open_yaml_path, 'wb') as sf:
+                sf.write(aamp.converters.yml_to_aamp(self.txtYaml.toPlainText().encode('utf-8')))
+        elif self.open_yaml == 'byml':
+            self.save_yaml_file(self.open_yaml_path, self.yaml_compressed)
+            self.txtRstbYaml.setText(str(rstb.SizeCalculator().calculate_file_size(self.open_yaml_path, 
+                self.chkBeYaml.isChecked(), False)))
+
+    def SaveAsYaml_Clicked(self):
+        qbox = QMessageBox()
+        qbox.setWindowTitle('Choose Save Format')
+        qbox.setText('Do you want to save this YAML document as an AAMP or a BYAML file?')
+        btnAamp = qbox.addButton('AAMP', QMessageBox.YesRole)
+        btnByml = qbox.addButton('BYAML', QMessageBox.NoRole)
+        qbox.setIcon(QMessageBox.Question)
+        qbox.exec_()
+        
+        fileName = QFileDialog.getSaveFileName(self, 'Save File As')[0]
+        if fileName:
+            if qbox.clickedButton() == btnAamp:
+                with open(fileName, 'wb') as sf:
+                    sf.write(aamp.converters.yml_to_aamp(self.txtYaml.toPlainText().encode('utf-8')))
+                self.open_yaml = 'aamp'
+            else:
+                should_compress = (QMessageBox.question(self, 'Compress SARC',
+                    'Do you want to yaz0 compress this BYAML file?',
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes)
+                self.save_yaml_file(fileName, should_compress)
+                self.open_yaml = 'byml'
+                self.yaml_compressed = should_compress
+            self.open_yaml_path = fileName
+
+    def save_yaml_file(self, path, compress):
+        loader = yaml.CSafeLoader
+        byml.yaml_util.add_constructors(loader)
+        root = yaml.load(self.txtYaml.toPlainText(), Loader=loader)
+        buf = io.BytesIO()
+        byml.Writer(root, self.chkBeYaml.isChecked()).write(buf)
+        buf.seek(0)
+        if compress:
+            buf = io.BytesIO(wszst_yaz0.compress(buf.read()))
+        with open(path, 'wb') as sf:
+            shutil.copyfileobj(buf, sf)
 
 app = QtWidgets.QApplication([])
 application = MainWindow()

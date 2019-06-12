@@ -1,5 +1,6 @@
 ﻿/.vscode
 /wildbits/__pycache__
+wildbits/__pycache__
 wildbits/addrstb.ui
 wildbits/main.ui
 wildbits/updaterstb.ui

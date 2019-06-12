@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file '.\wildbits\main.ui',
 # licensing of '.\wildbits\main.ui' applies.
 #
-# Created: Tue Jun 11 05:47:32 2019
+# Created: Wed Jun 12 06:38:00 2019
 #      by: pyside2-uic  running on PySide2 5.12.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -230,10 +230,17 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addItem(spacerItem2)
         self.horizontalLayout_4.addLayout(self.verticalLayout_4)
         self.gridLayout.addLayout(self.horizontalLayout_4, 0, 0, 1, 1)
+        self.verticalLayout_5 = QtWidgets.QVBoxLayout()
+        self.verticalLayout_5.setObjectName("verticalLayout_5")
+        self.label_5 = QtWidgets.QLabel(self.tab_files)
+        self.label_5.setObjectName("label_5")
+        self.verticalLayout_5.addWidget(self.label_5)
         self.txtYaml = QtWidgets.QTextEdit(self.tab_files)
         self.txtYaml.setEnabled(False)
+        self.txtYaml.setReadOnly(True)
         self.txtYaml.setObjectName("txtYaml")
-        self.gridLayout.addWidget(self.txtYaml, 0, 1, 1, 1)
+        self.verticalLayout_5.addWidget(self.txtYaml)
+        self.gridLayout.addLayout(self.verticalLayout_5, 0, 1, 1, 1)
         self.tabWidget.addTab(self.tab_files, "")
         self.gridLayout_2.addWidget(self.tabWidget, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -313,5 +320,6 @@ class Ui_MainWindow(object):
 "(Wii U)", None, -1))
         self.label_4.setText(QtWidgets.QApplication.translate("MainWindow", "Size for RSTB:", None, -1))
         self.txtRstbYaml.setToolTip(QtWidgets.QApplication.translate("MainWindow", "Shows the calculated size for the current file for the RSTB (BYAML only)", None, -1))
+        self.label_5.setText(QtWidgets.QApplication.translate("MainWindow", "Readonly Preview:", None, -1))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_files), QtWidgets.QApplication.translate("MainWindow", "YAML Tools", None, -1))
 
