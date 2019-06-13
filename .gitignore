@@ -5,3 +5,6 @@ wildbits/addrstb.ui
 wildbits/main.ui
 wildbits/updaterstb.ui
 wildbits/*.ui
+/build
+/dist
+/wildbits.egg-info

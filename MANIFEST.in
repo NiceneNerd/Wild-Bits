@@ -1,0 +1,2 @@
+recursive-include docs/*.md
+include wildbits/name_hashes
