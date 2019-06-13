@@ -1,3 +1,6 @@
+# Copyright 2019 Nicene Nerd <macadamiadaze@gmail.com>
+# Licensed under GPLv3+
+
 from setuptools import setup
 
 with open('docs/README.md', 'r') as readme:

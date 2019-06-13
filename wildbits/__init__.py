@@ -1,3 +1,6 @@
+# Copyright 2019 Nicene Nerd <macadamiadaze@gmail.com>
+# Licensed under GPLv3+
+
 import glob
 import sys
 import shutil
