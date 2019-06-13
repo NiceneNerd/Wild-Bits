@@ -96,6 +96,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "*.sstats", "*.bgenv", "*.sbgenv", "*.genvb", "*.sgenvb", "*.blarc", "*.sblarc"
         ]
 
+    open_sarc_path = False
+    open_rstb_path = False
+    open_yaml_path = False
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
@@ -129,6 +133,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.txtFilterRstb.editingFinished.connect(self.FilterRstb)
 
+        self.lblOpen = QtWidgets.QLabel()
+        self.lblOpen.setText('')
+        self.statusbar.addWidget(self.lblOpen)
+        self.tabWidget.currentChanged.connect(self.TabWidget_Changed)
+        self.TabWidget_Changed()
+
+    def TabWidget_Changed(self):
+        if self.tabWidget.currentIndex() == 0:
+            self.lblOpen.setText(self.open_sarc_path if self.open_sarc_path else 'No SARC open')
+        elif self.tabWidget.currentIndex() == 1:
+            self.lblOpen.setText(self.open_rstb_path if self.open_rstb_path else 'No RSTB open')
+        else:
+            self.lblOpen.setText(self.open_yaml_path if self.open_yaml_path else 'No AAMP or BYAML open')
+
     def EnableSarcButtons(self):
         self.btnAddSarc.setEnabled(True)
         self.btnUpdateSarc.setEnabled(True)
@@ -161,6 +179,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.LoadSarc()
                 self.EnableSarcButtons()
                 self.treeSarc.collapseAll()
+                self.TabWidget_Changed()
 
     def NewSarc_Clicked(self):
         new_sarc = sarc.SARCWriter(self.chkBeSarc.isChecked())
@@ -388,7 +407,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def OpenRstb_Clicked(self):
         RSTBHashes.clear()
-        with open(os.path.join(execdir, './wildbits/name_hashes'), 'r') as hf:
+        with open(os.path.join(execdir, 'name_hashes'), 'r') as hf:
             for line in hf.readlines():
                 parsed = line.split(',')
                 RSTBHashes[int(parsed[0], 16)] = parsed[1]
@@ -415,12 +434,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         self.open_rstb_path = fileName
                         self.rstb_vals = {}
                         self.LoadRstb()
-        if self.open_rstb:
-            self.btnAddRstb.setEnabled(True)
-            self.btnUpdateRstb.setEnabled(True)
-            self.btnDeleteRstb.setEnabled(True)
-            self.btnSaveRstb.setEnabled(True)
-            self.btnSaveAsRstb.setEnabled(True)
+            if self.open_rstb:
+                self.btnAddRstb.setEnabled(True)
+                self.btnUpdateRstb.setEnabled(True)
+                self.btnDeleteRstb.setEnabled(True)
+                self.btnSaveRstb.setEnabled(True)
+                self.btnSaveAsRstb.setEnabled(True)
+                self.TabWidget_Changed()
 
     def AddRstb_Clicked(self):
         dlg = AddRstbDialog(self.chkBeRstb.isChecked())
@@ -538,6 +558,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.txtYaml.setText(dumped)
                 self.txtRstbYaml.setText(str(rstb.SizeCalculator().calculate_file_size(fileName, open_byml._be, False)))
                 self.EnableYamlButtons()
+                self.TabWidget_Changed()
     
     def YamlEditor_Clicked(self):
         import tempfile
@@ -609,7 +630,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         with open(path, 'wb') as sf:
             shutil.copyfileobj(buf, sf)
 
-app = QtWidgets.QApplication([])
-application = MainWindow()
-application.show()
-sys.exit(app.exec_())
+def main():
+    app = QtWidgets.QApplication([])
+    application = MainWindow()
+    application.show()
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
