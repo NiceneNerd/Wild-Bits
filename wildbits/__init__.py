@@ -137,18 +137,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.txtFilterRstb.editingFinished.connect(self.FilterRstb)
 
         self.lblOpen = QtWidgets.QLabel()
+        self.lblOpen.setStyleSheet('padding: 4 4')
         self.lblOpen.setText('')
         self.statusbar.addWidget(self.lblOpen)
+        self.lblYaml = QtWidgets.QLabel()
+        self.lblYaml.setStyleSheet('padding: 4 4')
         self.tabWidget.currentChanged.connect(self.TabWidget_Changed)
         self.TabWidget_Changed()
 
     def TabWidget_Changed(self):
         if self.tabWidget.currentIndex() == 0:
             self.lblOpen.setText(self.open_sarc_path if self.open_sarc_path else 'No SARC open')
+            try: self.statusbar.removeWidget(self.lblYaml)
+            except: pass
         elif self.tabWidget.currentIndex() == 1:
             self.lblOpen.setText(self.open_rstb_path if self.open_rstb_path else 'No RSTB open')
+            self.lblYaml.setText('')
+            try: self.statusbar.removeWidget(self.lblYaml)
+            except: pass
         else:
             self.lblOpen.setText(self.open_yaml_path if self.open_yaml_path else 'No AAMP or BYAML open')
+            self.statusbar.addWidget(self.lblYaml)
+            if hasattr(self, 'open_yaml'): self.lblYaml.setText(self.open_yaml.upper())
 
     def EnableSarcButtons(self):
         self.btnAddSarc.setEnabled(True)
@@ -405,7 +415,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def getSelectedEntries(self):
         file_names = []
         for item in self.tblRstb.selectionModel().selectedRows():
-            file_names.append(self.tblRstb.item(item.row(), 0).text())
+            file_names.append(self.tblRstb.item(item.row(), 0).text().strip())
         return file_names
 
     def OpenRstb_Clicked(self):
