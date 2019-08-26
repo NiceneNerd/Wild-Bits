@@ -8,7 +8,7 @@ with open('docs/README.md', 'r') as readme:
 
 setup(
     name='wildbits',
-    version='0.52',
+    version='0.6.0',
     author='NiceneNerd',
     author_email='macadamiadaze@gmail.com',
     description='A GUI frontend for Leoetlino\'s Python tools for Breath of the Wild modding',

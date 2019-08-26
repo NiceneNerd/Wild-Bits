@@ -10,6 +10,8 @@ import zlib
 import platform
 import subprocess
 import yaml
+from pathlib import Path
+from typing import Union
 
 import aamp
 import aamp.converters
@@ -18,6 +20,7 @@ import byml.yaml_util
 import rstb
 import sarc
 import wszst_yaz0
+import xxhash
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtWidgets import QFileDialog, QMessageBox, QTableWidgetItem
 from rstb import util
@@ -26,18 +29,19 @@ from wildbits.addrstb import Ui_dlgAddRstb
 from wildbits.maingui import Ui_MainWindow
 from wildbits.updaterstb import Ui_dlgUpdateRstb
 
-RSTBHashes = {}
-execdir = os.path.dirname(os.path.realpath(__file__))
+rstb_hashes = {}
+game_hashes = {}
+EXEC_DIR = os.path.dirname(os.path.realpath(__file__))
 
 def format_bytes(size):
     power = 2**10
-    n = 0
+    power_idx = 0
     power_labels = {0 : 'bytes', 1: 'KB', 2: 'MB', 3: 'GB', 4: 'TB'}
     while size > power:
         size /= power
-        n += 1
-    print_size = f'{size:.3f}' if n > 0 else str(size)
-    return f'{print_size} {power_labels[n]}'
+        power_idx += 1
+    print_size = f'{size:.3f}' if power_idx > 0 else str(size)
+    return f'{print_size} {power_labels[power_idx]}'
 
 class AddRstbDialog(QtWidgets.QDialog, Ui_dlgAddRstb):
     def __init__(self, wiiu, *args, **kwargs):
@@ -47,14 +51,17 @@ class AddRstbDialog(QtWidgets.QDialog, Ui_dlgAddRstb):
         self.btnBrowseRstbAdd.clicked.connect(self.BrowseRstbAdd_Clicked)
 
     def BrowseRstbAdd_Clicked(self):
-        fileName = QFileDialog.getOpenFileName(self, "Select File", "",
-            "All Files (*)")[0]
-        if fileName:
-            self.txtAddRstbFile.setText(fileName)
-            size = rstb.SizeCalculator().calculate_file_size(fileName, self.wiiu, False)
+        file_name = QFileDialog.getOpenFileName(self, "Select File", "", "All Files (*)")[0]
+        if file_name:
+            self.txtAddRstbFile.setText(file_name)
+            size = rstb.SizeCalculator().calculate_file_size(file_name, self.wiiu, False)
             if size == 0:
-                QMessageBox.warning(self, 'Warning',
-                    'The resource size for this kind of file cannot be calculated. You may need to set it by trial and error.')
+                QMessageBox.warning(
+                    self,
+                    'Warning',
+                    'The resource size for this kind of file cannot be calculated.'
+                    'You may need to set it by trial and error.'
+                )
             self.spnAddResBytes.setValue(size)
 
     def getResult(self):
@@ -75,14 +82,18 @@ class UpdateRstbDialog(QtWidgets.QDialog, Ui_dlgUpdateRstb):
         self.btnBrowseRstbFile.clicked.connect(self.BrowseRstb_Clicked)
 
     def BrowseRstb_Clicked(self):
-        fileName = QFileDialog.getOpenFileName(self, "Select File", "",
+        file_name = QFileDialog.getOpenFileName(self, "Select File", "",
             "All Files (*)")[0]
-        if fileName:
-            self.txtRstbFile.setText(fileName)
-            size = rstb.SizeCalculator().calculate_file_size(fileName, self.wiiu, False)
+        if file_name:
+            self.txtRstbFile.setText(file_name)
+            size = rstb.SizeCalculator().calculate_file_size(file_name, self.wiiu, False)
             if size == 0:
-                QMessageBox.warning(self, 'Warning',
-                    'The resource size for this kind of file cannot be calculated. You may need to set it by trial and error.')
+                QMessageBox.warning(
+                    self,
+                    'Warning',
+                    'The resource size for this kind of file cannot be calculated.'
+                    'You may need to set it by trial and error.'
+                )
             self.spnResBytes.setValue(size)
 
     def getSizeResult(self):
@@ -93,11 +104,29 @@ class UpdateRstbDialog(QtWidgets.QDialog, Ui_dlgUpdateRstb):
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
-    sarc_exts = [
-            "*.sarc", "*.ssarc", "*.pack", "*.bactorpack", "*.sbactorpack", "*.bmodelsh",
-            "*.sbmodelsh", "*.beventpack", "*.sbeventpack", "*.stera", "*.sstera", "*.stats",
-            "*.sstats", "*.bgenv", "*.sbgenv", "*.genvb", "*.sgenvb", "*.blarc", "*.sblarc"
-        ]
+    SARC_EXTS = {'*.sarc', '*.pack', '*.bactorpack', '*.bmodelsh', '*.beventpack', '*.stera',
+                 '*.stats', '*.ssarc', '*.spack', '*.sbactorpack', '*.sbmodelsh', '*.sbeventpack',
+                 '*.sstera', '*.sstats'}
+    AAMP_EXTS = {'.bxml', '.sbxml', '.bas', '.sbas', '.baglblm', '.sbaglblm', '.baglccr', '.sbaglccr',
+                 '.baglclwd', '.sbaglclwd', '.baglcube', '.sbaglcube', '.bagldof', '.sbagldof',
+                 '.baglenv', '.sbaglenv', '.baglenvset', '.sbaglenvset', '.baglfila', '.sbaglfila',
+                  '.bagllmap', '.sbagllmap', '.bagllref', '.sbagllref', '.baglmf', '.sbaglmf',
+                 '.baglshpp', '.sbaglshpp', '.baiprog', '.sbaiprog', '.baslist', '.sbaslist',
+                 '.bassetting', '.sbassetting', '.batcl', '.sbatcl', '.batcllist', '.sbatcllist',
+                 '.bawareness', '.sbawareness', '.bawntable', '.sbawntable', '.bbonectrl',
+                 '.sbbonectrl', '.bchemical', '.sbchemical', '.bchmres', '.sbchmres', '.bdemo',
+                 '.sbdemo', '.bdgnenv', '.sbdgnenv', '.bdmgparam', '.sbdmgparam', '.bdrop', '.sbdrop',
+                 '.bgapkginfo', '.sbgapkginfo', '.bgapkglist', '.sbgapkglist', '.bgenv', '.sbgenv',
+                 '.bglght', '.sbglght', '.bgmsconf', '.sbgmsconf', '.bgparamlist', '.sbgparamlist',
+                 '.bgsdw', '.sbgsdw', '.bksky', '.sbksky', '.blifecondition', '.sblifecondition',
+                 '.blod', '.sblod', '.bmodellist', '.sbmodellist', '.bmscdef', '.sbmscdef', '.bmscinfo',
+                 '.sbmscinfo', '.bnetfp', '.sbnetfp', '.bphyscharcon', '.sbphyscharcon',
+                 '.bphyscontact', '.sbphyscontact', '.bphysics', '.sbphysics', '.bphyslayer',
+                 '.sbphyslayer', '.bphysmaterial', '.sbphysmaterial', '.bphyssb', '.sbphyssb',
+                 '.bphyssubmat', '.sbphyssubmat', '.bptclconf', '.sbptclconf', '.brecipe', '.sbrecipe',
+                 '.brgbw', '.sbrgbw', '.brgcon', '.sbrgcon', '.brgconfig', '.sbrgconfig',
+                 '.brgconfiglist', '.sbrgconfiglist', '.bsfbt', '.sbsfbt', '.bsft', '.sbsft', '.bshop',
+                 '.sbshop', '.bumii', '.sbumii', '.bvege', '.sbvege', '.bactcapt', '.sbactcapt'}
 
     open_sarc_path = False
     open_rstb_path = False
@@ -106,6 +135,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
+        self.open_sarc: sarc.SARC = None
+        self.rstb_calc = rstb.SizeCalculator()
         self.tblRstb.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.treeSarc.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
 
@@ -145,6 +176,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tabWidget.currentChanged.connect(self.TabWidget_Changed)
         self.TabWidget_Changed()
 
+
+    def ShowProgress(self, title: str):
+        self._progress = QtWidgets.QProgressDialog(title, 'Cancel', 0, 0, self)
+        self._progress.show()
+
     def TabWidget_Changed(self):
         if self.tabWidget.currentIndex() == 0:
             self.lblOpen.setText(self.open_sarc_path if self.open_sarc_path else 'No SARC open')
@@ -156,7 +192,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             try: self.statusbar.removeWidget(self.lblYaml)
             except: pass
         else:
-            self.lblOpen.setText(self.open_yaml_path if self.open_yaml_path else 'No AAMP or BYAML open')
+            self.lblOpen.setText(self.open_yaml_path if self.open_yaml_path \
+                                 else 'No AAMP or BYAML open')
             self.statusbar.addWidget(self.lblYaml)
             if hasattr(self, 'open_yaml'): self.lblYaml.setText(self.open_yaml.upper())
 
@@ -169,10 +206,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btnExtSarc.setEnabled(True)
 
     def OpenSarc_Clicked(self):
-        fileName = QFileDialog.getOpenFileName(self, "Open RSTB File", "",
-            f"SARC Packs ({'; '.join(self.sarc_exts)});;All Files (*)")[0]
-        if fileName:
-            with open(fileName, 'rb') as sf:
+        file_name = QFileDialog.getOpenFileName(
+            self,
+            "Open RSTB File", "",
+            f"SARC Packs ({'; '.join(self.SARC_EXTS)});;All Files (*)"
+        )[0]
+        if file_name:
+            with open(file_name, 'rb') as sf:
                 sf.seek(0)
                 magic = sf.read(4)
                 if magic == b'Yaz0':
@@ -184,11 +224,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.open_sarc = sarc.read_file_and_make_sarc(sf)
                 self.chkBeSarc.setChecked(self.open_sarc._be)
             if not self.open_sarc:
-                QMessageBox.critical(self, 'Error',
-                    'SARC could not be loaded. The file may be invalid, broken, not a SARC, or in use.')
+                QMessageBox.critical(
+                    self,
+                    'Error',
+                    'SARC could not be loaded. The file may be invalid, broken, not a SARC, '
+                    'or in use.'
+                )
                 return
             else:
-                self.open_sarc_path = fileName
+                if self.open_sarc._be and not game_hashes:
+                    with open(os.path.join(EXEC_DIR, 'hashtable_wiiu'), 'r') as hf:
+                        for line in hf.readlines()[1:]:
+                            parsed = line.split(',')
+                            game_hashes[parsed[0]] = parsed[1].strip()
+                self.open_sarc_path = file_name
+                self.ShowProgress('Opening and Processing SARC...')
                 self.LoadSarc()
                 self.EnableSarcButtons()
                 self.treeSarc.collapseAll()
@@ -202,14 +252,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.EnableSarcButtons()
 
     def AddSarc_Clicked(self):
-        fileName = QFileDialog.getOpenFileName(self, "Add File to SARC", "",
+        file_name = QFileDialog.getOpenFileName(self, "Add File to SARC", "",
             "All Files (*)")[0]
-        if fileName:
+        if file_name:
             add_sarc = sarc.make_writer_from_sarc(self.open_sarc)
             new_path, accepted = QtWidgets.QInputDialog.getText(self, 'Enter File Path:', 
                 'Enter the path in the SARC where the new file should be stored:', QtWidgets.QLineEdit.Normal)
             if accepted:
-                with open(fileName, 'rb') as af:
+                with open(file_name, 'rb') as af:
                     add_sarc.add_file(new_path, af.read())
                 self.open_sarc = None
                 self.open_sarc = sarc.SARC(add_sarc.get_bytes())
@@ -264,9 +314,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 should_decompress = (QMessageBox.question(self, 'Decompress File', 
                     f'It appears that {file_name}{file_ext} may be yaz0 compressed. Do you want to decompress it?',
                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes)
-            fileName = QFileDialog.getSaveFileName(self, 'Extract File To')[0]
-            if fileName:
-                with open(fileName, 'wb') as wf:
+            file_name = QFileDialog.getSaveFileName(self, 'Extract File To')[0]
+            if file_name:
+                with open(file_name, 'wb') as wf:
                     save_data = self.open_sarc.get_file_data(save_file)
                     if should_decompress:
                         save_data = wszst_yaz0.decompress(save_data)
@@ -297,20 +347,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         should_compress = (QMessageBox.question(self, 'Compress SARC',
             'Do you want to yaz0 compress this SARC archive?',
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes)
-        fileName = QFileDialog.getSaveFileName(self, 'Save SARC As', '', "All Files (*)")[0]
-        if fileName:
-            with open(fileName, 'wb') as sf:
+        file_name = QFileDialog.getSaveFileName(self, 'Save SARC As', '', "All Files (*)")[0]
+        if file_name:
+            with open(file_name, 'wb') as sf:
                 save_sarc = sarc.make_writer_from_sarc(self.open_sarc)
                 save_bytes = save_sarc.get_bytes()
                 if should_compress:
                     save_bytes = wszst_yaz0.compress(save_bytes, 3)
                 sf.write(save_bytes)
-            self.open_sarc_path = fileName
+            self.open_sarc_path = file_name
             self.open_sarc_compressed = should_compress
 
     def LoadSarc(self):
         self.treeSarc.clear()
-        self.fill_item(self.treeSarc.invisibleRootItem(), self.files_to_dict(self.open_sarc.list_files()))
+        self.fill_item(
+            self.treeSarc.invisibleRootItem(),
+            self.files_to_dict(self.open_sarc.list_files())
+        )
+        self._progress.close()
+        self._progress = None
 
     def getFullSarcPath(self, item):
         full_path = item.text(0)
@@ -333,8 +388,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         return d
 
     def fill_item(self, item, value):
+        QtCore.QCoreApplication.instance().processEvents()
+        mod_color = QtGui.QColor(255, 255, 141)
         item.setExpanded(True)
         if type(value) is dict:
+            child_highlighted = False
             for key, val in sorted(value.items()):
                 child = QtWidgets.QTreeWidgetItem()
                 child.setText(0, key)
@@ -342,13 +400,49 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.fill_item(child, val)
                 full_path = self.getFullSarcPath(child)
                 child.setToolTip(0, full_path)
-                try:
-                    size = self.open_sarc.get_file_size(full_path)
-                    str_size = format_bytes(size)
-                    child.setText(1, str_size)
-                    child.setToolTip(1, f'{size} bytes')
-                except:
-                    pass
+                if '.' in full_path:
+                    try:
+                        size = self.open_sarc.get_file_size(full_path)
+                        str_size = format_bytes(size)
+                        child.setText(1, str_size)
+                        child.setToolTip(1, f'{size} bytes')
+                    except (IndexError, KeyError):
+                        pass
+                    data = self.open_sarc.get_file_data(full_path).tobytes()
+                    canon = full_path.replace('.s', '.')
+                    if data[0:4] == b'Yaz0':
+                        data = wszst_yaz0.decompress(data)
+                    try:
+                        mod_hash = xxhash.xxh32(data).hexdigest()
+                        stock_hash = game_hashes[canon]
+                        if mod_hash != stock_hash:
+                            child.setBackgroundColor(0, mod_color)
+                            child_highlighted = True
+                    except (IndexError, KeyError):
+                        pass
+                    ext = os.path.splitext(canon)[1]
+                    rstb_size = self.rstb_calc.calculate_file_size_with_ext(
+                        data,
+                        True,
+                        ext
+                    )
+                    estimated = False
+                    if rstb_size == 0:
+                        if ext == '.bfres':
+                            rstb_size = guess_bfres_size(data, os.path.basename(canon))
+                            estimated = True
+                        elif ext in self.AAMP_EXTS:
+                            rstb_size = guess_aamp_size(data, ext)
+                            estimated = True
+                    child.setText(2, str(rstb_size))
+                    if rstb_size == 0:
+                        child.setText(2, '')
+                        child.setToolTip(2, 'RSTB value could not be calculated')
+                    elif estimated:
+                        child.setBackgroundColor(2, QtGui.QColor(255, 171, 64))
+                        child.setToolTip(2, 'Estimated value')
+            if child_highlighted:
+                item.setBackgroundColor(0, mod_color)
         elif type(value) is list:
             for val in value:
                 child = QtWidgets.QTreeWidgetItem()
@@ -360,7 +454,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     child.setText(0, '[list]')
                     self.fill_item(child, val)
                 else:
-                    child.setText(0, val) 
+                    child.setText(0, val)
                 child.setExpanded(True)
         else:
             child = QtWidgets.QTreeWidgetItem()
@@ -368,16 +462,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             item.addChild(child)
 
     def ExtractSarc_Clicked(self):
-        fileName = QFileDialog.getOpenFileName(self, 'Open SARC Archive', '',
-            f"SARC Packs ({'; '.join(self.sarc_exts)});;All Files (*)")[0]
-        if fileName:
+        file_name = QFileDialog.getOpenFileName(self, 'Open SARC Archive', '',
+            f"SARC Packs ({'; '.join(self.SARC_EXTS)});;All Files (*)")[0]
+        if file_name:
             folder = QFileDialog.getExistingDirectory(self, 'Select Extract Folder')
-            with open(fileName, 'rb') as rf:
+            with open(file_name, 'rb') as rf:
                 ex_sarc = sarc.read_file_and_make_sarc(rf)
             if ex_sarc:
                 ex_sarc.extract_to_dir(folder)
                 if QMessageBox.question(self, 'Extraction Finished',
-                    f'Extracting {os.path.basename(fileName)} complete. Do you want to view the extracted contents?',
+                    f'Extracting {os.path.basename(file_name)} complete. Do you want to view the extracted contents?',
                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
                     if platform.system() == "Windows":
                         subprocess.Popen(["explorer", folder.replace('/','\\')])
@@ -403,13 +497,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             should_compress = (QMessageBox.question(self, 'Compress SARC',
                 'Do you want to yaz0 compress the new SARC?',
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes)
-            fileName = QFileDialog.getSaveFileName(self, 'Save SARC')[0]
-            if fileName:
-                with open(fileName, 'wb') as wf:
+            file_name = QFileDialog.getSaveFileName(self, 'Save SARC')[0]
+            if file_name:
+                with open(file_name, 'wb') as wf:
                     save_bytes = new_sarc.get_bytes()
                     if should_compress: save_bytes = wszst_yaz0.compress(save_bytes)
                     wf.write(save_bytes)
-                QMessageBox.information(self, 'Creation Finished', f'Creating SARC {os.path.split(fileName)[1]} complete!')
+                QMessageBox.information(self, 'Creation Finished', f'Creating SARC {os.path.split(file_name)[1]} complete!')
                 new_sarc = None
 
     def getSelectedEntries(self):
@@ -419,23 +513,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         return file_names
 
     def OpenRstb_Clicked(self):
-        RSTBHashes.clear()
-        with open(os.path.join(execdir, 'name_hashes'), 'r') as hf:
+        rstb_hashes.clear()
+        with open(os.path.join(EXEC_DIR, 'name_hashes'), 'r') as hf:
             for line in hf.readlines():
                 parsed = line.split(',')
-                RSTBHashes[int(parsed[0], 16)] = parsed[1]
-        fileName = QFileDialog.getOpenFileName(self, "Open RSTB File", "",
+                rstb_hashes[int(parsed[0], 16)] = parsed[1]
+        file_name = QFileDialog.getOpenFileName(self, "Open RSTB File", "",
             "Resource Size Table Files (*.rsizetable, *.srsizetable);;All Files (*)")[0]
-        if fileName:
-            self.open_rstb = util.read_rstb(fileName, False)
+        if file_name:
+            self.open_rstb = util.read_rstb(file_name, False)
             if self.open_rstb.is_in_table('System/Resource/ResourceSizeTable.product.rsizetable'):
-                self.open_rstb_path = fileName
+                self.open_rstb_path = file_name
                 self.rstb_vals = {}
                 self.LoadRstb()
             else:
-                self.open_rstb = util.read_rstb(fileName, True)
+                self.open_rstb = util.read_rstb(file_name, True)
                 if self.open_rstb.is_in_table('System/Resource/ResourceSizeTable.product.rsizetable'):
-                    self.open_rstb_path = fileName
+                    self.open_rstb_path = file_name
                     self.chkBeRstb.setChecked(True)
                     self.rstb_vals = {}
                     self.LoadRstb()
@@ -444,7 +538,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         'A standard RSTB entry was not found in this file. It could be corrupt. Do you want to continue?', 
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes)
                     if corrupt_reply:
-                        self.open_rstb_path = fileName
+                        self.open_rstb_path = file_name
                         self.rstb_vals = {}
                         self.LoadRstb()
             if self.open_rstb:
@@ -461,8 +555,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if result is not False:
             self.open_rstb.set_size(result['entry'], result['size'])
             hash = zlib.crc32(result['entry'].encode('utf8'))
-            RSTBHashes[hash] = result['entry']
-            with open(os.path.join(execdir,'./wildbits/name_hashes'), 'a') as hf:
+            rstb_hashes[hash] = result['entry']
+            with open(os.path.join(EXEC_DIR,'./wildbits/name_hashes'), 'a') as hf:
                 hf.write(f'{hash},{result["entry"]}')
             self.LoadRstb()
 
@@ -490,18 +584,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         util.write_rstb(self.open_rstb, self.open_rstb_path, self.chkBeRstb.isChecked())
 
     def SaveAsRstb_Clicked(self):
-        fileName = QFileDialog.getSaveFileName(self,"Save RSTB As","",
+        file_name = QFileDialog.getSaveFileName(self,"Save RSTB As","",
             "Resource Size Table Files (*.rsizetable, *.srsizetable);;All Files (*)")[0]
-        if fileName:
-            util.write_rstb(self.open_rstb, fileName, self.chkBeRstb.isChecked())
-            self.open_rstb_path = fileName
+        if file_name:
+            util.write_rstb(self.open_rstb, file_name, self.chkBeRstb.isChecked())
+            self.open_rstb_path = file_name
     
     def LoadRstb(self):
         self.rstb_vals.clear()
         uki = 1
         for entry in self.open_rstb.crc32_map:
-            if entry in RSTBHashes:
-                name_key = RSTBHashes[entry]
+            if entry in rstb_hashes:
+                name_key = rstb_hashes[entry]
             else:
                 name_key = f'Unknown file {uki}'
                 uki += 1
@@ -548,10 +642,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.EnableYamlButtons()
 
     def OpenYaml_Clicked(self):
-        fileName = QFileDialog.getOpenFileName(self, 'Open BYAML or AAMP File')[0]
-        if fileName:
-            self.open_yaml_path = fileName
-            with open(fileName, 'rb') as rf:
+        file_name = QFileDialog.getOpenFileName(self, 'Open BYAML or AAMP File')[0]
+        if file_name:
+            self.open_yaml_path = file_name
+            with open(file_name, 'rb') as rf:
                 input_data = rf.read()
             if input_data[0:4] == b'Yaz0':
                 input_data = wszst_yaz0.decompress(input_data)
@@ -569,7 +663,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.open_yaml = 'byml'
                 dumped = yaml.dump(open_byml.parse(), Dumper=dumper, allow_unicode=True, encoding='utf-8').decode('utf-8')
                 self.txtYaml.setText(dumped)
-                self.txtRstbYaml.setText(str(rstb.SizeCalculator().calculate_file_size(fileName, open_byml._be, False)))
+                self.txtRstbYaml.setText(str(self.rstb_calc.calculate_file_size(file_name, open_byml._be, False)))
                 self.EnableYamlButtons()
                 self.TabWidget_Changed()
     
@@ -588,12 +682,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.txtYaml.setText(temp.read())
         if self.open_yaml == 'byml':
             self.save_yaml_file(self.temp_yaml + '.byaml', False)
-            self.txtRstbYaml.setText(str(rstb.SizeCalculator().calculate_file_size(self.temp_yaml + '.byaml', self.chkBeYaml.isChecked(), False)))
+            self.txtRstbYaml.setText(str(self.rstb_calc.calculate_file_size(self.temp_yaml + '.byaml', self.chkBeYaml.isChecked(), False)))
 
     def ExportYaml_Clicked(self):
-        fileName = QFileDialog.getSaveFileName(self, 'Export YAML', '' ,'YAML File (*.yml; *.yaml);;All Files (*)')[0]
-        if fileName:
-            with open(fileName, 'w') as sf:
+        file_name = QFileDialog.getSaveFileName(self, 'Export YAML', '' ,'YAML File (*.yml; *.yaml);;All Files (*)')[0]
+        if file_name:
+            with open(file_name, 'w') as sf:
                 sf.write(self.txtYaml.toPlainText())
 
     def SaveYaml_Clicked(self):
@@ -604,7 +698,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 sf.write(aamp.converters.yml_to_aamp(self.txtYaml.toPlainText().encode('utf-8')))
         elif self.open_yaml == 'byml':
             self.save_yaml_file(self.open_yaml_path, self.yaml_compressed)
-            self.txtRstbYaml.setText(str(rstb.SizeCalculator().calculate_file_size(self.open_yaml_path, 
+            self.txtRstbYaml.setText(str(self.rstb_calc.calculate_file_size(self.open_yaml_path, 
                 self.chkBeYaml.isChecked(), False)))
 
     def SaveAsYaml_Clicked(self):
@@ -616,20 +710,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         qbox.setIcon(QMessageBox.Question)
         qbox.exec_()
         
-        fileName = QFileDialog.getSaveFileName(self, 'Save File As')[0]
-        if fileName:
+        file_name = QFileDialog.getSaveFileName(self, 'Save File As')[0]
+        if file_name:
             if qbox.clickedButton() == btnAamp:
-                with open(fileName, 'wb') as sf:
+                with open(file_name, 'wb') as sf:
                     sf.write(aamp.converters.yml_to_aamp(self.txtYaml.toPlainText().encode('utf-8')))
                 self.open_yaml = 'aamp'
             else:
                 should_compress = (QMessageBox.question(self, 'Compress SARC',
                     'Do you want to yaz0 compress this BYAML file?',
                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes)
-                self.save_yaml_file(fileName, should_compress)
+                self.save_yaml_file(file_name, should_compress)
                 self.open_yaml = 'byml'
                 self.yaml_compressed = should_compress
-            self.open_yaml_path = fileName
+            self.open_yaml_path = file_name
 
     def save_yaml_file(self, path, compress):
         loader = yaml.CSafeLoader
@@ -642,6 +736,219 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             buf = io.BytesIO(wszst_yaz0.compress(buf.read()))
         with open(path, 'wb') as sf:
             shutil.copyfileobj(buf, sf)
+
+
+def guess_bfres_size(file: Union[Path, bytes], name: str = '') -> int:
+    """
+    Attempts to estimate a proper RSTB value for a BFRES file
+    :param file: The file to estimate, either as a path or bytes
+    :type file: Union[:class:`pathlib.Path`, bytes]
+    :param name: The name of the file, needed when passing as bytes, defaults to ''
+    :type name: str, optional
+    :return: Returns an estimated RSTB value
+    :rtype: int
+    """
+    real_bytes = file if isinstance(file, bytes) else file.read_bytes()
+    if real_bytes[0:4] == b'Yaz0':
+        real_bytes = wszst_yaz0.decompress(real_bytes)
+    real_size = len(real_bytes)
+    del real_bytes
+    if name == '':
+        if isinstance(file, Path):
+            name = file.name
+        else:
+            raise ValueError('BFRES name must not be blank if passing file as bytes.')
+    if '.Tex' in name:
+        if real_size < 100:
+            return real_size * 9
+        elif 100 < real_size <= 2000:
+            return real_size * 7
+        elif 2000 < real_size <= 3000:
+            return real_size * 5
+        elif 3000 < real_size <= 4000:
+            return real_size * 4
+        elif 4000 < real_size <= 8500:
+            return real_size * 3
+        elif 8500 < real_size <= 12000:
+            return real_size * 2
+        elif 12000 < real_size <= 17000:
+            return int(real_size * 1.75)
+        elif 17000 < real_size <= 30000:
+            return int(real_size * 1.5)
+        elif 30000 < real_size <= 45000:
+            return int(real_size * 1.3)
+        elif 45000 < real_size <= 100000:
+            return int(real_size * 1.2)
+        elif 100000 < real_size <= 150000:
+            return int(real_size * 1.1)
+        elif 150000 < real_size <= 200000:
+            return int(real_size * 1.07)
+        elif 200000 < real_size <= 250000:
+            return int(real_size * 1.045)
+        elif 250000 < real_size <= 300000:
+            return int(real_size * 1.035)
+        elif 300000 < real_size <= 600000:
+            return int(real_size * 1.03)
+        elif 600000 < real_size <= 1000000:
+            return int(real_size * 1.015)
+        elif 1000000 < real_size <= 1800000:
+            return int(real_size * 1.009)
+        elif 1800000 < real_size <= 4500000:
+            return int(real_size * 1.005)
+        elif 4500000 < real_size <= 6000000:
+            return int(real_size * 1.002)
+        else:
+            return int(real_size * 1.0015)
+    else:
+        if real_size < 500:
+            return real_size * 7
+        elif 500 < real_size <= 750:
+            return real_size * 4
+        elif 750 < real_size <= 2000:
+            return real_size * 3
+        elif 2000 < real_size <= 400000:
+            return int(real_size * 1.75)
+        elif 400000 < real_size <= 600000:
+            return int(real_size * 1.7)
+        elif 600000 < real_size <= 1500000:
+            return int(real_size * 1.6)
+        elif 1500000 < real_size <= 3000000:
+            return int(real_size * 1.5)
+        else:
+            return int(real_size * 1.25)
+
+
+def guess_aamp_size(file: Union[Path, bytes], ext: str = '') -> int:
+    """
+    Attempts to estimate a proper RSTB value for an AAMP file. Will only attempt for the following
+    kinds: .baiprog, .bgparamlist, .bdrop, .bshop, .bxml, .brecipe, otherwise will return 0.
+    :param file: The file to estimate, either as a path or bytes
+    :type file: Union[:class:`pathlib.Path`, bytes]
+    :param name: The name of the file, needed when passing as bytes, defaults to ''
+    :type name: str, optional
+    :return: Returns an estimated RSTB value
+    :rtype: int"""
+    real_bytes = file if isinstance(file, bytes) else file.read_bytes()
+    if real_bytes[0:4] == b'Yaz0':
+        real_bytes = wszst_yaz0.decompress(real_bytes)
+    real_size = len(real_bytes)
+    del real_bytes
+    if ext == '':
+        if isinstance(file, Path):
+            ext = file.suffix
+        else:
+            raise ValueError(
+                'AAMP extension must not be blank if passing file as bytes.')
+    ext = ext.replace('.s', '.')
+    if ext == '.baiprog':
+        if real_size <= 380:
+            return real_size * 7
+        elif 380 < real_size <= 400:
+            return real_size * 6
+        elif 400 < real_size <= 450:
+            return int(real_size * 5.5)
+        elif 450 < real_size <= 600:
+            return real_size * 5
+        elif 600 < real_size <= 1000:
+            return real_size * 4
+        elif 1000 < real_size <= 1750:
+            return int(real_size * 3.5)
+        else:
+            return real_size * 3
+    elif ext == '.bgparamlist':
+        if real_size <= 100:
+            return real_size * 20
+        elif 100 < real_size <= 150:
+            return real_size * 12
+        elif 150 < real_size <= 250:
+            return real_size * 10
+        elif 250 < real_size <= 350:
+            return real_size * 8
+        elif 350 < real_size <= 450:
+            return real_size * 7
+        else:
+            return real_size * 6
+    elif ext == '.bdrop':
+        if real_size < 200:
+            return int(real_size * 8.5)
+        elif 200 < real_size <= 250:
+            return real_size * 7
+        elif 250 < real_size <= 350:
+            return real_size * 6
+        elif 350 < real_size <= 450:
+            return int(real_size * 5.25)
+        elif 450 < real_size <= 850:
+            return int(real_size * 4.5)
+        else:
+            return real_size * 4
+    elif ext == '.bxml':
+        if real_size < 350:
+            return real_size * 6
+        elif 350 < real_size <= 450:
+            return real_size * 5
+        elif 450 < real_size <= 550:
+            return int(real_size * 4.5)
+        elif 550 < real_size <= 650:
+            return real_size * 4
+        elif 650 < real_size <= 800:
+            return int(real_size * 3.5)
+        else:
+            return real_size * 3
+    elif ext == '.brecipe':
+        if real_size < 100:
+            return int(real_size * 12.5)
+        elif 100 < real_size <= 160:
+            return int(real_size * 8.5)
+        elif 160 < real_size <= 200:
+            return int(real_size * 7.5)
+        elif 200 < real_size <= 215:
+            return real_size * 7
+        else:
+            return int(real_size * 6.5)
+    elif ext == '.bshop':
+        if real_size < 200:
+            return int(real_size * 7.25)
+        elif 200 < real_size <= 400:
+            return real_size * 6
+        elif 400 < real_size <= 500:
+            return real_size * 5
+        else:
+            return int(real_size * 4.05)
+    elif ext == '.bas':
+        if real_size < 100:
+            return real_size * 20
+        elif 100 < real_size <= 200:
+            return int(real_size * 12.5)
+        elif 200 < real_size <= 300:
+            return real_size * 10
+        elif 300 < real_size <= 600:
+            return real_size * 8
+        elif 600 < real_size <= 1500:
+            return real_size * 6
+        elif 1500 < real_size <= 2000:
+            return int(real_size * 5.5)
+        elif 2000 < real_size <= 15000:
+            return real_size * 5
+        else:
+            return int(real_size * 4.5)
+    elif ext == '.baslist':
+        if real_size < 100:
+            return real_size * 15
+        elif 100 < real_size <= 200:
+            return real_size * 10
+        elif 200 < real_size <= 300:
+            return real_size * 8
+        elif 300 < real_size <= 500:
+            return real_size * 6
+        elif 500 < real_size <= 800:
+            return real_size * 5
+        elif 800 < real_size <= 4000:
+            return real_size * 4
+        else:
+            return int(real_size * 3.5)
+    else:
+        return 0
+
 
 def main():
     app = QtWidgets.QApplication([])

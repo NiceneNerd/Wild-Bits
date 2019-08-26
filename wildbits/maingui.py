@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\wildbits\main.ui',
-# licensing of '.\wildbits\main.ui' applies.
+# Form implementation generated from reading ui file 'c:\Users\macad\Documents\Git\Wild-Bits\wildbits\main.ui',
+# licensing of 'c:\Users\macad\Documents\Git\Wild-Bits\wildbits\main.ui' applies.
 #
-# Created: Thu Jun 13 19:10:15 2019
-#      by: pyside2-uic  running on PySide2 5.12.3
+# Created: Mon Aug 26 08:56:53 2019
+#      by: pyside2-uic  running on PySide2 5.13.0
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -35,6 +35,7 @@ class Ui_MainWindow(object):
         self.label.setObjectName("label")
         self.verticalLayout_2.addWidget(self.label)
         self.treeSarc = QtWidgets.QTreeWidget(self.groupBox)
+        self.treeSarc.setColumnCount(3)
         self.treeSarc.setObjectName("treeSarc")
         self.treeSarc.header().setStretchLastSection(False)
         self.verticalLayout_2.addWidget(self.treeSarc)
@@ -263,6 +264,7 @@ class Ui_MainWindow(object):
         self.label.setText(QtWidgets.QApplication.translate("MainWindow", "SARC Contents:", None, -1))
         self.treeSarc.headerItem().setText(0, QtWidgets.QApplication.translate("MainWindow", "File", None, -1))
         self.treeSarc.headerItem().setText(1, QtWidgets.QApplication.translate("MainWindow", "Size", None, -1))
+        self.treeSarc.headerItem().setText(2, QtWidgets.QApplication.translate("MainWindow", "RSTB", None, -1))
         self.btnNewSarc.setToolTip(QtWidgets.QApplication.translate("MainWindow", "Creates an empty SARC archive", None, -1))
         self.btnNewSarc.setText(QtWidgets.QApplication.translate("MainWindow", "New SARC", None, -1))
         self.btnOpenSarc.setToolTip(QtWidgets.QApplication.translate("MainWindow", "Opens a SARC", None, -1))

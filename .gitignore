@@ -8,3 +8,4 @@ wildbits/*.ui
 /build
 /dist
 /wildbits.egg-info
+/venv
