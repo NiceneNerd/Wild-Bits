@@ -35,6 +35,7 @@ setup(
         'aamp',
         'byml',
         'wszst_yaz0',
-        'PySide2'
+        'PySide2',
+        'xxhash'
     ]
 )
