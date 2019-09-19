@@ -9,6 +9,8 @@ import io
 import zlib
 import platform
 import subprocess
+import threading
+import traceback
 import yaml
 from pathlib import Path
 from typing import Union
@@ -25,13 +27,39 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtWidgets import QFileDialog, QMessageBox, QTableWidgetItem
 from rstb import util
 
+from wildbits.files import *
 from wildbits.addrstb import Ui_dlgAddRstb
 from wildbits.maingui import Ui_MainWindow
 from wildbits.updaterstb import Ui_dlgUpdateRstb
 
-rstb_hashes = {}
-game_hashes = {}
 EXEC_DIR = os.path.dirname(os.path.realpath(__file__))
+
+SARC_EXTS = {'*.sarc', '*.pack', '*.bactorpack', '*.bmodelsh', '*.beventpack', '*.stera',
+             '*.stats', '*.ssarc', '*.spack', '*.sbactorpack', '*.sbmodelsh', '*.sbeventpack',
+             '*.sstera', '*.sstats'}
+AAMP_EXTS = {'.bxml', '.sbxml', '.bas', '.sbas', '.baglblm', '.sbaglblm', '.baglccr', '.sbaglccr',
+             '.baglclwd', '.sbaglclwd', '.baglcube', '.sbaglcube', '.bagldof', '.sbagldof',
+             '.baglenv', '.sbaglenv', '.baglenvset', '.sbaglenvset', '.baglfila', '.sbaglfila',
+             '.bagllmap', '.sbagllmap', '.bagllref', '.sbagllref', '.baglmf', '.sbaglmf',
+             '.baglshpp', '.sbaglshpp', '.baiprog', '.sbaiprog', '.baslist', '.sbaslist',
+             '.bassetting', '.sbassetting', '.batcl', '.sbatcl', '.batcllist', '.sbatcllist',
+             '.bawareness', '.sbawareness', '.bawntable', '.sbawntable', '.bbonectrl',
+             '.sbbonectrl', '.bchemical', '.sbchemical', '.bchmres', '.sbchmres', '.bdemo',
+             '.sbdemo', '.bdgnenv', '.sbdgnenv', '.bdmgparam', '.sbdmgparam', '.bdrop', '.sbdrop',
+             '.bgapkginfo', '.sbgapkginfo', '.bgapkglist', '.sbgapkglist', '.bgenv', '.sbgenv',
+             '.bglght', '.sbglght', '.bgmsconf', '.sbgmsconf', '.bgparamlist', '.sbgparamlist',
+             '.bgsdw', '.sbgsdw', '.bksky', '.sbksky', '.blifecondition', '.sblifecondition',
+             '.blod', '.sblod', '.bmodellist', '.sbmodellist', '.bmscdef', '.sbmscdef', '.bmscinfo',
+             '.sbmscinfo', '.bnetfp', '.sbnetfp', '.bphyscharcon', '.sbphyscharcon',
+             '.bphyscontact', '.sbphyscontact', '.bphysics', '.sbphysics', '.bphyslayer',
+             '.sbphyslayer', '.bphysmaterial', '.sbphysmaterial', '.bphyssb', '.sbphyssb',
+             '.bphyssubmat', '.sbphyssubmat', '.bptclconf', '.sbptclconf', '.brecipe', '.sbrecipe',
+             '.brgbw', '.sbrgbw', '.brgcon', '.sbrgcon', '.brgconfig', '.sbrgconfig',
+             '.brgconfiglist', '.sbrgconfiglist', '.bsfbt', '.sbsfbt', '.bsft', '.sbsft', '.bshop',
+             '.sbshop', '.bumii', '.sbumii', '.bvege', '.sbvege', '.bactcapt', '.sbactcapt'}
+BYML_EXTS = {'.bgdata', '.sbgdata', '.bquestpack', '.sbquestpack', '.byml', '.sbyml', '.mubin',
+             '.smubin', '.baischedule', '.sbaischedule', '.baniminfo', '.sbaniminfo', '.bgsvdata',
+             '.sbgsvdata'}
 
 def format_bytes(size):
     power = 2**10
@@ -44,7 +72,7 @@ def format_bytes(size):
     return f'{print_size} {power_labels[power_idx]}'
 
 class AddRstbDialog(QtWidgets.QDialog, Ui_dlgAddRstb):
-    def __init__(self, wiiu, *args, **kwargs):
+    def __init__(self, wiiu, *args, **kwargs): # pylint: disable=unused-argument
         super(AddRstbDialog, self).__init__()
         self.setupUi(self)
         self.wiiu = wiiu
@@ -74,7 +102,7 @@ class AddRstbDialog(QtWidgets.QDialog, Ui_dlgAddRstb):
             return False
 
 class UpdateRstbDialog(QtWidgets.QDialog, Ui_dlgUpdateRstb):
-    def __init__(self, entry, wiiu, *args, **kwargs):
+    def __init__(self, entry, wiiu, *args, **kwargs): # pylint: disable=unused-argument
         super(UpdateRstbDialog, self).__init__()
         self.setupUi(self)
         self.wiiu = wiiu
@@ -104,33 +132,12 @@ class UpdateRstbDialog(QtWidgets.QDialog, Ui_dlgUpdateRstb):
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
-    SARC_EXTS = {'*.sarc', '*.pack', '*.bactorpack', '*.bmodelsh', '*.beventpack', '*.stera',
-                 '*.stats', '*.ssarc', '*.spack', '*.sbactorpack', '*.sbmodelsh', '*.sbeventpack',
-                 '*.sstera', '*.sstats'}
-    AAMP_EXTS = {'.bxml', '.sbxml', '.bas', '.sbas', '.baglblm', '.sbaglblm', '.baglccr', '.sbaglccr',
-                 '.baglclwd', '.sbaglclwd', '.baglcube', '.sbaglcube', '.bagldof', '.sbagldof',
-                 '.baglenv', '.sbaglenv', '.baglenvset', '.sbaglenvset', '.baglfila', '.sbaglfila',
-                  '.bagllmap', '.sbagllmap', '.bagllref', '.sbagllref', '.baglmf', '.sbaglmf',
-                 '.baglshpp', '.sbaglshpp', '.baiprog', '.sbaiprog', '.baslist', '.sbaslist',
-                 '.bassetting', '.sbassetting', '.batcl', '.sbatcl', '.batcllist', '.sbatcllist',
-                 '.bawareness', '.sbawareness', '.bawntable', '.sbawntable', '.bbonectrl',
-                 '.sbbonectrl', '.bchemical', '.sbchemical', '.bchmres', '.sbchmres', '.bdemo',
-                 '.sbdemo', '.bdgnenv', '.sbdgnenv', '.bdmgparam', '.sbdmgparam', '.bdrop', '.sbdrop',
-                 '.bgapkginfo', '.sbgapkginfo', '.bgapkglist', '.sbgapkglist', '.bgenv', '.sbgenv',
-                 '.bglght', '.sbglght', '.bgmsconf', '.sbgmsconf', '.bgparamlist', '.sbgparamlist',
-                 '.bgsdw', '.sbgsdw', '.bksky', '.sbksky', '.blifecondition', '.sblifecondition',
-                 '.blod', '.sblod', '.bmodellist', '.sbmodellist', '.bmscdef', '.sbmscdef', '.bmscinfo',
-                 '.sbmscinfo', '.bnetfp', '.sbnetfp', '.bphyscharcon', '.sbphyscharcon',
-                 '.bphyscontact', '.sbphyscontact', '.bphysics', '.sbphysics', '.bphyslayer',
-                 '.sbphyslayer', '.bphysmaterial', '.sbphysmaterial', '.bphyssb', '.sbphyssb',
-                 '.bphyssubmat', '.sbphyssubmat', '.bptclconf', '.sbptclconf', '.brecipe', '.sbrecipe',
-                 '.brgbw', '.sbrgbw', '.brgcon', '.sbrgcon', '.brgconfig', '.sbrgconfig',
-                 '.brgconfiglist', '.sbrgconfiglist', '.bsfbt', '.sbsfbt', '.bsft', '.sbsft', '.bshop',
-                 '.sbshop', '.bumii', '.sbumii', '.bvege', '.sbvege', '.bactcapt', '.sbactcapt'}
-
     open_sarc_path = False
     open_rstb_path = False
-    open_yaml_path = False
+    open_yaml = {}
+    
+    rstb_hashes = {}
+    game_hashes = {}
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -158,12 +165,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btnSaveRstb.clicked.connect(self.SaveRstb_Clicked)
         self.btnSaveAsRstb.clicked.connect(self.SaveAsRstb_Clicked)
 
-        self.btnNewYaml.clicked.connect(self.NewYaml_Clicked)
-        self.btnOpenYaml.clicked.connect(self.OpenYaml_Clicked)
-        self.btnYamlEditor.clicked.connect(self.YamlEditor_Clicked)
-        self.btnExportYaml.clicked.connect(self.ExportYaml_Clicked)
-        self.btnSaveYaml.clicked.connect(self.SaveYaml_Clicked)
-        self.btnSaveAsYaml.clicked.connect(self.SaveAsYaml_Clicked)
+        self.act_open.triggered.connect(self.OpenYaml)
+        self.act_save.triggered.connect(self.SaveYaml)
+        self.act_saveas.triggered.connect(self.SaveAsYaml)
 
         self.txtFilterRstb.editingFinished.connect(self.FilterRstb)
 
@@ -176,7 +180,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tabWidget.currentChanged.connect(self.TabWidget_Changed)
         self.TabWidget_Changed()
 
-
     def ShowProgress(self, title: str):
         self._progress = QtWidgets.QProgressDialog(title, 'Cancel', 0, 0, self)
         self._progress.show()
@@ -184,18 +187,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def TabWidget_Changed(self):
         if self.tabWidget.currentIndex() == 0:
             self.lblOpen.setText(self.open_sarc_path if self.open_sarc_path else 'No SARC open')
-            try: self.statusbar.removeWidget(self.lblYaml)
-            except: pass
+            try:
+                self.statusbar.removeWidget(self.lblYaml)
+            except:
+                pass
         elif self.tabWidget.currentIndex() == 1:
             self.lblOpen.setText(self.open_rstb_path if self.open_rstb_path else 'No RSTB open')
             self.lblYaml.setText('')
-            try: self.statusbar.removeWidget(self.lblYaml)
-            except: pass
+            try:
+                self.statusbar.removeWidget(self.lblYaml)
+            except:
+                pass
         else:
-            self.lblOpen.setText(self.open_yaml_path if self.open_yaml_path \
-                                 else 'No AAMP or BYAML open')
+            self.lblOpen.setText(str(self.open_yaml['path']) if 'path' in self.open_yaml \
+                                 else 'No AAMP or BYML open')
             self.statusbar.addWidget(self.lblYaml)
-            if hasattr(self, 'open_yaml'): self.lblYaml.setText(self.open_yaml.upper())
+            if 'type' in self.open_yaml:
+                self.lblYaml.setText(self.open_yaml['type'].upper())
 
     def EnableSarcButtons(self):
         self.btnAddSarc.setEnabled(True)
@@ -209,7 +217,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         file_name = QFileDialog.getOpenFileName(
             self,
             "Open RSTB File", "",
-            f"SARC Packs ({'; '.join(self.SARC_EXTS)});;All Files (*)"
+            f"SARC Packs ({'; '.join(SARC_EXTS)});;All Files (*)"
         )[0]
         if file_name:
             with open(file_name, 'rb') as sf:
@@ -222,7 +230,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 else:
                     self.open_sarc = False
                 self.open_sarc = sarc.read_file_and_make_sarc(sf)
-                self.chkBeSarc.setChecked(self.open_sarc._be)
+                self.chkBeSarc.setChecked(self.open_sarc._be) # pylint: disable=protected-access
             if not self.open_sarc:
                 QMessageBox.critical(
                     self,
@@ -232,11 +240,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 )
                 return
             else:
-                if self.open_sarc._be and not game_hashes:
+                if self.open_sarc._be and not self.game_hashes: # pylint: disable=protected-access
                     with open(os.path.join(EXEC_DIR, 'hashtable_wiiu'), 'r') as hf:
                         for line in hf.readlines()[1:]:
                             parsed = line.split(',')
-                            game_hashes[parsed[0]] = parsed[1].strip()
+                            self.game_hashes[parsed[0]] = parsed[1].strip()
                 self.open_sarc_path = file_name
                 self.ShowProgress('Opening and Processing SARC...')
                 self.LoadSarc()
@@ -364,8 +372,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.treeSarc.invisibleRootItem(),
             self.files_to_dict(self.open_sarc.list_files())
         )
-        self._progress.close()
-        self._progress = None
+        self.ProgressDone()
 
     def getFullSarcPath(self, item):
         full_path = item.text(0)
@@ -414,7 +421,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         data = wszst_yaz0.decompress(data)
                     try:
                         mod_hash = xxhash.xxh32(data).hexdigest()
-                        stock_hash = game_hashes[canon]
+                        stock_hash = self.game_hashes[canon]
                         if mod_hash != stock_hash:
                             child.setBackgroundColor(0, mod_color)
                             child_highlighted = True
@@ -431,7 +438,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         if ext == '.bfres':
                             rstb_size = guess_bfres_size(data, os.path.basename(canon))
                             estimated = True
-                        elif ext in self.AAMP_EXTS:
+                        elif ext in AAMP_EXTS:
                             rstb_size = guess_aamp_size(data, ext)
                             estimated = True
                     child.setText(2, str(rstb_size))
@@ -463,7 +470,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def ExtractSarc_Clicked(self):
         file_name = QFileDialog.getOpenFileName(self, 'Open SARC Archive', '',
-            f"SARC Packs ({'; '.join(self.SARC_EXTS)});;All Files (*)")[0]
+            f"SARC Packs ({'; '.join(SARC_EXTS)});;All Files (*)")[0]
         if file_name:
             folder = QFileDialog.getExistingDirectory(self, 'Select Extract Folder')
             with open(file_name, 'rb') as rf:
@@ -513,11 +520,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         return file_names
 
     def OpenRstb_Clicked(self):
-        rstb_hashes.clear()
+        self.rstb_hashes.clear()
         with open(os.path.join(EXEC_DIR, 'name_hashes'), 'r') as hf:
             for line in hf.readlines():
                 parsed = line.split(',')
-                rstb_hashes[int(parsed[0], 16)] = parsed[1]
+                self.rstb_hashes[int(parsed[0], 16)] = parsed[1]
         file_name = QFileDialog.getOpenFileName(self, "Open RSTB File", "",
             "Resource Size Table Files (*.rsizetable, *.srsizetable);;All Files (*)")[0]
         if file_name:
@@ -555,8 +562,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if result is not False:
             self.open_rstb.set_size(result['entry'], result['size'])
             hash = zlib.crc32(result['entry'].encode('utf8'))
-            rstb_hashes[hash] = result['entry']
-            with open(os.path.join(EXEC_DIR,'./wildbits/name_hashes'), 'a') as hf:
+            self.rstb_hashes[hash] = result['entry']
+            with open(os.path.join(EXEC_DIR, './wildbits/name_hashes'), 'a') as hf:
                 hf.write(f'{hash},{result["entry"]}')
             self.LoadRstb()
 
@@ -594,8 +601,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.rstb_vals.clear()
         uki = 1
         for entry in self.open_rstb.crc32_map:
-            if entry in rstb_hashes:
-                name_key = rstb_hashes[entry]
+            if entry in self.rstb_hashes:
+                name_key = self.rstb_hashes[entry]
             else:
                 name_key = f'Unknown file {uki}'
                 uki += 1
@@ -610,7 +617,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tblRstb.setItem(i, 1,  QTableWidgetItem(self.rstb_vals[entry]['hash']))
             self.tblRstb.setItem(i, 2,  QTableWidgetItem(self.rstb_vals[entry]['size']))
         self.tblRstb.setUpdatesEnabled(True)
-    
+
     def FilterRstb(self):
         filter = self.txtFilterRstb.text()
         if len(filter) < 1:
@@ -622,120 +629,221 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         filtered_entries = { k: v for k, v in self.rstb_vals.items() if filter.lower() in k.lower() }
         self.tblRstb.setRowCount(len(filtered_entries))
         for i, entry in enumerate(filtered_entries):
-            self.tblRstb.setItem(i, 0,  QTableWidgetItem(entry))
-            self.tblRstb.setItem(i, 1,  QTableWidgetItem(self.rstb_vals[entry]['hash']))
-            self.tblRstb.setItem(i, 2,  QTableWidgetItem(self.rstb_vals[entry]['size']))
+            self.tblRstb.setItem(i, 0, QTableWidgetItem(entry))
+            self.tblRstb.setItem(i, 1, QTableWidgetItem(self.rstb_vals[entry]['hash']))
+            self.tblRstb.setItem(i, 2, QTableWidgetItem(self.rstb_vals[entry]['size']))
         self.tblRstb.setUpdatesEnabled(True)
 
-    def EnableYamlButtons(self):
-        self.btnYamlEditor.setEnabled(True)
-        self.btnExportYaml.setEnabled(True)
-        self.btnSaveYaml.setEnabled(True)
-        self.btnSaveAsYaml.setEnabled(True)
-        self.txtRstbYaml.setEnabled(True)
-        self.txtYaml.setEnabled(True)
+    def ProgressDone(self):
+        self._progress.close()
+        self._progress = None
+        self.TabWidget_Changed()
 
-    def NewYaml_Clicked(self):
-        self.open_yaml = ''
-        self.open_yaml_path = ''
-        self.txtYaml.setText('')
-        self.EnableYamlButtons()
+    def YamlFileOpened(self, open_info: dict):
+        if 'error' in open_info:
+            QMessageBox.warning(
+                self, 'Error', 'You did not select a valid AAMP, BYML, or MSBT file.'
+            )
+        else:
+            self.open_yaml = open_info
+            self.yaml_editor.setText(open_info['text'])
+            self.yaml_editor.setReadonly(False)
+            self.act_save.setEnabled(True)
+            self.act_saveas.setEnabled(True)
+        self.ProgressDone()
 
-    def OpenYaml_Clicked(self):
-        file_name = QFileDialog.getOpenFileName(self, 'Open BYAML or AAMP File')[0]
+    def OpenYaml(self):
+        aamp_exts = ';'.join([f'*{ext}' for ext in AAMP_EXTS])
+        byml_exts = ';'.join([f'*{ext}' for ext in BYML_EXTS])
+        file_name = QFileDialog.getOpenFileName(
+            self,
+            "Open File", "",
+            ';;'.join([
+                f'AAMP Files ({aamp_exts})',
+                f'BYML Files ({byml_exts})',
+                'MSBT Files (*.msbt)',
+                'All Files (*)'
+            ]))[0]
         if file_name:
-            self.open_yaml_path = file_name
-            with open(file_name, 'rb') as rf:
-                input_data = rf.read()
-            if input_data[0:4] == b'Yaz0':
-                input_data = wszst_yaz0.decompress(input_data)
-                self.yaml_compressed = True
-            if input_data[0:8] == b'AAMP\x02\x00\x00\x00':
-                self.txtYaml.setText(aamp.converters.aamp_to_yml(input_data).decode('utf-8'))
-                self.open_yaml = 'aamp'
-                self.EnableYamlButtons()
-                self.chkBeYaml.setEnabled(False)
-            elif input_data[0:2] == b'BY' or input_data[0:2] == b'YB':
-                open_byml = byml.Byml(input_data)
-                self.chkBeYaml.setChecked(open_byml._be)
-                dumper = yaml.CDumper
-                byml.yaml_util.add_representers(dumper)
-                self.open_yaml = 'byml'
-                dumped = yaml.dump(open_byml.parse(), Dumper=dumper, allow_unicode=True, encoding='utf-8').decode('utf-8')
-                self.txtYaml.setText(dumped)
-                self.txtRstbYaml.setText(str(self.rstb_calc.calculate_file_size(file_name, open_byml._be, False)))
-                self.EnableYamlButtons()
-                self.TabWidget_Changed()
-    
-    def YamlEditor_Clicked(self):
-        import tempfile
-        with tempfile.NamedTemporaryFile('w',suffix='.yml',encoding='utf-8',delete=False) as temp:
-            self.temp_yaml = temp.name
-            temp.write(self.txtYaml.toPlainText())
-        self.temp_watcher = QtCore.QFileSystemWatcher([self.temp_yaml])
-        self.temp_watcher.fileChanged.connect(self.TempFile_Changed)
-        import webbrowser
-        webbrowser.open(self.temp_yaml)
+            file_name = Path(file_name)
+            open_thread = OpenFileThread(file_name)
+            open_thread.opened.done.connect(self.YamlFileOpened)
+            open_thread.start()
+            self.ShowProgress(f'Opening {file_name.name}...')
 
-    def TempFile_Changed(self):
-        with open(self.temp_yaml, 'r') as temp:
-            self.txtYaml.setText(temp.read())
-        if self.open_yaml == 'byml':
-            self.save_yaml_file(self.temp_yaml + '.byaml', False)
-            self.txtRstbYaml.setText(str(self.rstb_calc.calculate_file_size(self.temp_yaml + '.byaml', self.chkBeYaml.isChecked(), False)))
+    def SaveYaml(self):
+        be = False
+        if 'be' in self.open_yaml:
+            be = self.open_yaml['be']
+        if self.open_yaml['type'] == 'msbt':
+            platform, okay = QtWidgets.QInputDialog.getItem(
+                self,
+                'MSBT Format',
+                'Select the format for the MSBT file\n(this cannot be automatically determined)',
+                ['Wii U', 'Switch'],
+                0,
+                False,
+                flags=QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowTitleHint
+            )
+            if not okay:
+                return
+        else:
+            platform = ''
+        save_thread = SaveFileThread(
+            self.open_yaml['path'],
+            self.yaml_editor.text(),
+            self,
+            be,
+            platform
+        )
+        save_thread.saved.done.connect(self.YamlFileOpened)
+        #save_thread.saved.error.connect(lambda error: QMessageBox.warning(self, 'Error', error))
+        save_thread.start()
+        self.ShowProgress(f'Saving {self.open_yaml["path"].name}...')
 
-    def ExportYaml_Clicked(self):
-        file_name = QFileDialog.getSaveFileName(self, 'Export YAML', '' ,'YAML File (*.yml; *.yaml);;All Files (*)')[0]
+    def SaveAsYaml(self):
+        be = False
+        if 'be' in self.open_yaml:
+            be = self.open_yaml['be']
+        if self.open_yaml['type'] == 'msbt':
+            platform, okay = QtWidgets.QInputDialog.getItem(
+                self,
+                'MSBT Format',
+                'Select the format for the MSBT file\n(this cannot be automatically determined)',
+                ['Wii U', 'Switch'],
+                0,
+                False,
+                flags=QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowTitleHint
+            )
+            if not okay:
+                return
+        else:
+            platform = ''
+        aamp_exts = ';'.join([f'*{ext}' for ext in AAMP_EXTS])
+        byml_exts = ';'.join([f'*{ext}' for ext in BYML_EXTS])
+        if self.open_yaml['type'] == 'aamp':
+            exts = f'AAMP Files ({aamp_exts})'
+        elif self.open_yaml['type'] == 'byml':
+            exts = f'BYML Files ({byml_exts})'
+        else:
+            exts = 'MSBT Files (*.msbt)'
+        file_name = QFileDialog.getSaveFileName(self, 'Save File As', '', exts)[0]
         if file_name:
-            with open(file_name, 'w') as sf:
-                sf.write(self.txtYaml.toPlainText())
+            save_thread = SaveFileThread(
+                Path(file_name),
+                self.yaml_editor.text(),
+                self,
+                be,
+                platform
+            )
+            save_thread.saved.done.connect(self.YamlFileOpened)
+            #save_thread.saved.error.connect(lambda error: QMessageBox.warning(self, 'Error', error))
+            save_thread.start()
+            self.ShowProgress(f'Saving {self.open_yaml["path"].name}...')
 
-    def SaveYaml_Clicked(self):
-        if self.open_yaml_path == '' or self.open_yaml == '':
-            self.SaveAsYaml_Clicked()
-        if self.open_yaml == 'aamp':
-            with open(self.open_yaml_path, 'wb') as sf:
-                sf.write(aamp.converters.yml_to_aamp(self.txtYaml.toPlainText().encode('utf-8')))
-        elif self.open_yaml == 'byml':
-            self.save_yaml_file(self.open_yaml_path, self.yaml_compressed)
-            self.txtRstbYaml.setText(str(self.rstb_calc.calculate_file_size(self.open_yaml_path, 
-                self.chkBeYaml.isChecked(), False)))
 
-    def SaveAsYaml_Clicked(self):
-        qbox = QMessageBox()
-        qbox.setWindowTitle('Choose Save Format')
-        qbox.setText('Do you want to save this YAML document as an AAMP or a BYAML file?')
-        btnAamp = qbox.addButton('AAMP', QMessageBox.YesRole)
-        btnByml = qbox.addButton('BYAML', QMessageBox.NoRole)
-        qbox.setIcon(QMessageBox.Question)
-        qbox.exec_()
-        
-        file_name = QFileDialog.getSaveFileName(self, 'Save File As')[0]
-        if file_name:
-            if qbox.clickedButton() == btnAamp:
-                with open(file_name, 'wb') as sf:
-                    sf.write(aamp.converters.yml_to_aamp(self.txtYaml.toPlainText().encode('utf-8')))
-                self.open_yaml = 'aamp'
-            else:
-                should_compress = (QMessageBox.question(self, 'Compress SARC',
-                    'Do you want to yaz0 compress this BYAML file?',
-                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes)
-                self.save_yaml_file(file_name, should_compress)
-                self.open_yaml = 'byml'
-                self.yaml_compressed = should_compress
-            self.open_yaml_path = file_name
+class OpenFileThread(threading.Thread, QtCore.QObject):
 
-    def save_yaml_file(self, path, compress):
-        loader = yaml.CSafeLoader
-        byml.yaml_util.add_constructors(loader)
-        root = yaml.load(self.txtYaml.toPlainText(), Loader=loader)
-        buf = io.BytesIO()
-        byml.Writer(root, self.chkBeYaml.isChecked()).write(buf)
-        buf.seek(0)
-        if compress:
-            buf = io.BytesIO(wszst_yaz0.compress(buf.read()))
-        with open(path, 'wb') as sf:
-            shutil.copyfileobj(buf, sf)
+    def __init__(self, file: Path):
+        threading.Thread.__init__(self)
+        self._file = file
+        self.opened = ThreadSignal()
+
+    def run(self):
+        if self._file.suffix in AAMP_EXTS:
+            self.opened.done.emit({
+                'path': self._file,
+                'type': 'aamp',
+                'text': open_aamp(self._file)
+            })
+        elif self._file.suffix in BYML_EXTS:
+            text, be = open_byml(self._file)
+            self.opened.done.emit({
+                'path': self._file,
+                'type': 'byml',
+                'be': be,
+                'text': text
+            })
+        elif self._file.suffix.lower() == '.msbt':
+            self.opened.done.emit({
+                'path': self._file,
+                'type': 'msbt',
+                'text': open_msbt(self._file)
+            })
+        else:
+            self.opened.done.emit({
+                'error': f'{self._file.name} is not a BYML, AAMP, or MSBT file.'
+            })
+
+
+class SaveFileThread(threading.Thread, QtCore.QObject):
+
+    def __init__(self, file: Path, contents: str, parent, byml_big_endian: bool = True,
+                 msbt_platform: str = ''):
+        threading.Thread.__init__(self)
+        self._file = file
+        self._contents = contents
+        self._be = byml_big_endian
+        self._parent = parent
+        self._platform = msbt_platform
+        self.saved = ThreadSignal()
+
+    def run(self):
+        if self._file.suffix in AAMP_EXTS:
+            try:
+                save_bytes = save_aamp(self._contents)
+                if self._file.suffix.startswith('s'):
+                    save_bytes = libyaz0.compress(self._file, level=10)
+                self._file.write_bytes(save_bytes)
+                self.saved.done.emit({
+                    'path': self._file,
+                    'type': 'aamp',
+                    'text': self._contents.replace('\\','\\\\')
+                })
+            except:
+                self.saved.error.emit(
+                    f'There was an error saving {self._file.name} as an AAMP file. Error details: '
+                    f'\n\n{traceback.format_exc(limit=-4)}'
+                )
+        elif self._file.suffix in BYML_EXTS:
+            try:
+                save_bytes = save_byml(self._contents)
+                if self._file.suffix.startswith('s'):
+                    save_bytes = libyaz0.compress(self._file, level=10)
+                self._file.write_bytes(save_bytes)
+                self.saved.done.emit({
+                    'path': self._file,
+                    'type': 'byml',
+                    'be': self._be,
+                    'text': self._contents.replace('\\','\\\\')
+                })
+            except:
+                self.saved.error.emit(
+                    f'There was an error saving {self._file.name} as a BYML file. Error details: '
+                    f'\n\n{traceback.format_exc(limit=-4)}'
+                )
+        elif self._file.suffix.lower() == '.msbt':
+            try:
+                save_msbt(
+                    self._contents,
+                    self._file,
+                    platform=self._platform.replace(' ', '').lower()
+                )
+                self.saved.done.emit({
+                    'path': self._file,
+                    'type': 'msbt',
+                    'text': self._contents.replace('\\','\\\\')
+                })
+            except:
+                self.saved.error.emit(
+                    f'There was an error saving {self._file.name} as an MSBT file. Error details: '
+                    f'\n\n{traceback.format_exc(limit=-4)}'
+                )
+
+
+class ThreadSignal(QtCore.QObject):
+    done = QtCore.Signal(dict)
+    error = QtCore.Signal(str)
 
 
 def guess_bfres_size(file: Union[Path, bytes], name: str = '') -> int:

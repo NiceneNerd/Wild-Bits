@@ -1,2 +1,3 @@
 recursive-include docs/*.md
 include wildbits/name_hashes
+include wildbits/hashtable_wiiu
