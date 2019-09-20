@@ -1,6 +1,6 @@
 # Wild Bits
 
-A GUI frontend for Leoetlino's Python tools for BOTW modding
+A GUI frontend for several Python tools using in BotW modding
 
 ## Dependencies
 
@@ -9,11 +9,13 @@ A GUI frontend for Leoetlino's Python tools for BOTW modding
 * The following `pip` packages, which will be installed automatically:
   * aamp
   * byml
+  * cython
+  * libyaz0
+  * PyMsyt
   * PySide2
   * pyYaml
   * rstb
   * sarc
-  * wszst_yaz0
 
 ## Setup
 
