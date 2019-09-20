@@ -42,7 +42,12 @@ def open_aamp(file: Union[Path, bytes]) -> str:
     return dump.getvalue()
 
 
-def open_msbt(file: Path) -> str:
+def open_msbt(file: Union[Path, bytes]) -> str:
+    if isinstance(file, bytes):
+        tmp = tempfile.NamedTemporaryFile('wb', delete=False)
+        tmp.write(file)
+        tmp.close()
+        file = Path(tmp.name)
     tmp_path = Path(tempfile.mkstemp('.msyt')[1])
     if pymsyt.export(file, tmp_path):
         return tmp_path.read_text(encoding='utf-8').replace('\\', '\\\\')
@@ -64,4 +69,5 @@ def save_aamp(contents: str,) -> bytes:
 
 def save_msbt(contents: str, file: Path, platform: str = 'wiiu'):
     data = yaml.safe_load(contents)
+    pymsyt._debug = True
     pymsyt.write_msbt(data, file, platform=platform)

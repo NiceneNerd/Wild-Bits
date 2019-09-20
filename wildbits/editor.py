@@ -31,6 +31,32 @@ class CodeEditorWidget(QtWebEngineWidgets.QWebEngineView):
     def readonly(self) -> bool:
         return self._readonly
 
+    def findText(self, subString):
+        self.page().runJavaScript(
+            f'var editor = ace.edit("editor"); editor.findAll("{str(subString)}");'
+        )
+
+    def replaceAll(self, needle: str, replace: str):
+        self.page().runJavaScript(
+            'var editor = ace.edit("editor");'
+            f'editor.replaceAll("{replace}", {{needle: "{needle}"}});'
+        )
+
+    def undo(self):
+        self.page().runJavaScript(
+            'var editor = ace.edit("editor"); editor.undo()'
+        )
+
+    def redo(self):
+        self.page().runJavaScript(
+            'var editor = ace.edit("editor"); editor.redo()'
+        )
+
+    def clearSelection(self):
+        self.page().runJavaScript(
+            'var editor = ace.edit("editor"); editor.selection.clearSelection();'
+        )
+
     @QtCore.Slot(str)
     def _returnText(self, value: str) -> str:
         self._text = value

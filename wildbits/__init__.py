@@ -146,6 +146,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.rstb_calc = rstb.SizeCalculator()
         self.tblRstb.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.treeSarc.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        self.treeSarc.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeSarc.customContextMenuRequested.connect(self.SarcContextMenu)
 
         self.btnOpenSarc.clicked.connect(self.OpenSarc_Clicked)
         self.btnNewSarc.clicked.connect(self.NewSarc_Clicked)
@@ -168,6 +170,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.act_open.triggered.connect(self.OpenYaml)
         self.act_save.triggered.connect(self.SaveYaml)
         self.act_saveas.triggered.connect(self.SaveAsYaml)
+        self.act_find.triggered.connect(self.FindYaml)
+        self.act_replace.triggered.connect(self.ReplaceYaml)
+        self.act_undo.triggered.connect(self.UndoYaml)
+        self.act_redo.triggered.connect(self.RedoYaml)
 
         self.txtFilterRstb.editingFinished.connect(self.FilterRstb)
 
@@ -181,7 +187,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.TabWidget_Changed()
 
     def ShowProgress(self, title: str):
-        self._progress = QtWidgets.QProgressDialog(title, 'Cancel', 0, 0, self)
+        self._progress = QtWidgets.QProgressDialog(
+            title, 'Cancel', 0, 0, self,
+            flags=QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowTitleHint
+        )
+        self._progress.setWindowTitle('Wild Bits')
         self._progress.show()
 
     def TabWidget_Changed(self):
@@ -199,10 +209,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             except:
                 pass
         else:
-            self.lblOpen.setText(str(self.open_yaml['path']) if 'path' in self.open_yaml \
-                                 else 'No AAMP or BYML open')
-            self.statusbar.addWidget(self.lblYaml)
+            self.lblOpen.setText(self.open_yaml['path'].as_posix() if 'path' in self.open_yaml \
+                                 else 'No file open')
             if 'type' in self.open_yaml:
+                self.statusbar.addWidget(self.lblYaml)
                 self.lblYaml.setText(self.open_yaml['type'].upper())
 
     def EnableSarcButtons(self):
@@ -212,6 +222,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btnSaveAsSarc.setEnabled(True)
         self.btnDeleteSarc.setEnabled(True)
         self.btnExtSarc.setEnabled(True)
+
+    def SarcContextMenu(self, pos):
+        current_item = self.treeSarc.itemAt(pos)
+        if current_item:
+            items = self.getSelectedTreeFiles(current_item)
+            menu = QtWidgets.QMenu(self)
+            act_exp = QtWidgets.QAction('Extract')
+            act_exp.triggered.connect(self.ExtSarc_Clicked)
+            menu.addAction(act_exp)
+            act_del = QtWidgets.QAction('Delete')
+            act_del.triggered.connect(self.DeleteSarc_Clicked)
+            menu.addAction(act_del)
+            if '.' in current_item.toolTip(0):
+                sarc_path = Path(items[0])
+                if sarc_path.suffix in AAMP_EXTS | BYML_EXTS | {'.msbt'}:
+                    act_yaml = QtWidgets.QAction('Open as YAML')
+                    act_yaml.triggered.connect(lambda: self.SarcOpenYaml(sarc_path))
+                    menu.insertAction(act_exp, act_yaml)
+            menu.exec_(self.treeSarc.mapToGlobal(pos))
+
+    def SarcOpenYaml(self, file):
+        open_thread = OpenFileThread(Path('SARC:', file), open_sarc=self.open_sarc)
+        open_thread.opened.done.connect(self.YamlFileOpened)
+        open_thread.start()
+        self.ShowProgress(f'Opening {file.name}...')
+        self.tabWidget.setCurrentIndex(2)
 
     def OpenSarc_Clicked(self):
         file_name = QFileDialog.getOpenFileName(
@@ -413,6 +449,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         str_size = format_bytes(size)
                         child.setText(1, str_size)
                         child.setToolTip(1, f'{size} bytes')
+                        if '.msbt' in full_path:
+                            continue
                     except (IndexError, KeyError):
                         pass
                     data = self.open_sarc.get_file_data(full_path).tobytes()
@@ -450,6 +488,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         child.setToolTip(2, 'Estimated value')
             if child_highlighted:
                 item.setBackgroundColor(0, mod_color)
+            QtCore.QCoreApplication.instance().processEvents()
         elif type(value) is list:
             for val in value:
                 child = QtWidgets.QTreeWidgetItem()
@@ -635,7 +674,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tblRstb.setUpdatesEnabled(True)
 
     def ProgressDone(self):
-        self._progress.close()
+        if self._progress:
+            self._progress.close()
         self._progress = None
         self.TabWidget_Changed()
 
@@ -648,8 +688,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.open_yaml = open_info
             self.yaml_editor.setText(open_info['text'])
             self.yaml_editor.setReadonly(False)
+            self.yaml_editor.clearSelection()
             self.act_save.setEnabled(True)
             self.act_saveas.setEnabled(True)
+            self.act_find.setEnabled(True)
+            self.act_replace.setEnabled(True)
+            self.act_undo.setEnabled(True)
+            self.act_redo.setEnabled(True)
+            if open_info['path'].parts[0] == 'SARC:':
+                self.LoadSarc()
         self.ProgressDone()
 
     def OpenYaml(self):
@@ -689,6 +736,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 return
         else:
             platform = ''
+        self.ShowProgress(f'Saving {self.open_yaml["path"].name}...')
         save_thread = SaveFileThread(
             self.open_yaml['path'],
             self.yaml_editor.text(),
@@ -697,9 +745,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             platform
         )
         save_thread.saved.done.connect(self.YamlFileOpened)
-        #save_thread.saved.error.connect(lambda error: QMessageBox.warning(self, 'Error', error))
+        save_thread.saved.error.connect(lambda error: QMessageBox.warning(self, 'Error', error))
         save_thread.start()
-        self.ShowProgress(f'Saving {self.open_yaml["path"].name}...')
 
     def SaveAsYaml(self):
         be = False
@@ -741,23 +788,86 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             save_thread.start()
             self.ShowProgress(f'Saving {self.open_yaml["path"].name}...')
 
+    def FindYaml(self):
+        find_name, okay = QtWidgets.QInputDialog.getText(
+            self,
+            'Find Text',
+            'Enter the text you want to find',
+            QtWidgets.QLineEdit.Normal,
+            '',
+            flags=QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowTitleHint
+        )
+        if okay:
+            self.yaml_editor.findText(find_name)
+
+    def ReplaceYaml(self):
+        result = ReplaceDialog(self).getFindReplace()
+        if result:
+            self.yaml_editor.replaceAll(result[0], result[1])
+
+    def UndoYaml(self):
+        self.yaml_editor.undo()
+
+    def RedoYaml(self):
+        self.yaml_editor.redo()
+
+
+class ReplaceDialog(QtWidgets.QDialog):
+
+    def __init__(self, parent):
+        super().__init__(parent, f=QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowTitleHint)
+        self.setWindowTitle('Find and Replace')
+        self.vlayout = QtWidgets.QVBoxLayout(self)
+        self.lbl_find = QtWidgets.QLabel('Find this:', parent=self)
+        self.vlayout.addWidget(self.lbl_find)
+        self.txt_find = QtWidgets.QLineEdit('', parent=self)
+        self.vlayout.addWidget(self.txt_find)
+        self.lbl_replace = QtWidgets.QLabel('Replace with:', parent=self)
+        self.vlayout.addWidget(self.lbl_replace)
+        self.txt_replace = QtWidgets.QLineEdit('', parent=self)
+        self.vlayout.addWidget(self.txt_replace)
+        self.button_box = QtWidgets.QDialogButtonBox(self)
+        self.button_box.setOrientation(QtCore.Qt.Horizontal)
+        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.button_box.setObjectName("button_box")
+        self.vlayout.addWidget(self.button_box)
+        self.setLayout(self.vlayout)
+
+        QtCore.QObject.connect(self.button_box, QtCore.SIGNAL("accepted()"), self.accept)
+        QtCore.QObject.connect(self.button_box, QtCore.SIGNAL("rejected()"), self.reject)
+
+    def getFindReplace(self) -> (str, str):
+        if self.exec_() == QtWidgets.QDialog.Accepted:
+            return self.txt_find.text(), self.txt_replace.text()
+        else:
+            return None
+
 
 class OpenFileThread(threading.Thread, QtCore.QObject):
 
-    def __init__(self, file: Path):
+    def __init__(self, file: Path, open_sarc: sarc.SARC = None):
         threading.Thread.__init__(self)
         self._file = file
+        self._sarc = open_sarc
         self.opened = ThreadSignal()
 
     def run(self):
+        if self._file.parts[0] == 'SARC:':
+            file = Path(*self._file.parts[1:])
         if self._file.suffix in AAMP_EXTS:
             self.opened.done.emit({
                 'path': self._file,
                 'type': 'aamp',
-                'text': open_aamp(self._file)
+                'text': open_aamp(self._file) if not self._sarc \
+                        else open_aamp(
+                            self._sarc.get_file_data(file.as_posix()).tobytes()
+                        )
             })
         elif self._file.suffix in BYML_EXTS:
-            text, be = open_byml(self._file)
+            text, be = open_byml(self._file) if not self._sarc \
+                       else open_byml(
+                           self._sarc.get_file_data(file.as_posix()).tobytes()
+                        )
             self.opened.done.emit({
                 'path': self._file,
                 'type': 'byml',
@@ -768,7 +878,10 @@ class OpenFileThread(threading.Thread, QtCore.QObject):
             self.opened.done.emit({
                 'path': self._file,
                 'type': 'msbt',
-                'text': open_msbt(self._file)
+                'text': open_msbt(self._file) if not self._sarc \
+                        else open_msbt(
+                            self._sarc.get_file_data(file.as_posix()).tobytes()
+                        )
             })
         else:
             self.opened.done.emit({
@@ -784,9 +897,17 @@ class SaveFileThread(threading.Thread, QtCore.QObject):
         self._file = file
         self._contents = contents
         self._be = byml_big_endian
-        self._parent = parent
+        self._parent: MainWindow = parent
         self._platform = msbt_platform
         self.saved = ThreadSignal()
+
+    def update_sarc(self, data: bytes):
+        file = Path(*self._file.parts[1:]).as_posix()
+        new_sarc = sarc.make_writer_from_sarc(self._parent.open_sarc)
+        new_sarc.delete_file(file)
+        new_sarc.add_file(file, data)
+        self._parent.open_sarc = sarc.SARC(new_sarc.get_bytes())
+        del new_sarc
 
     def run(self):
         if self._file.suffix in AAMP_EXTS:
@@ -794,11 +915,14 @@ class SaveFileThread(threading.Thread, QtCore.QObject):
                 save_bytes = save_aamp(self._contents)
                 if self._file.suffix.startswith('s'):
                     save_bytes = libyaz0.compress(self._file, level=10)
-                self._file.write_bytes(save_bytes)
+                if self._file.parts[0] != 'SARC:':
+                    self._file.write_bytes(save_bytes)
+                else:
+                    self.update_sarc(save_bytes)
                 self.saved.done.emit({
                     'path': self._file,
                     'type': 'aamp',
-                    'text': self._contents.replace('\\','\\\\')
+                    'text': self._contents.replace('\\', '\\\\')
                 })
             except:
                 self.saved.error.emit(
@@ -810,7 +934,10 @@ class SaveFileThread(threading.Thread, QtCore.QObject):
                 save_bytes = save_byml(self._contents)
                 if self._file.suffix.startswith('s'):
                     save_bytes = libyaz0.compress(self._file, level=10)
-                self._file.write_bytes(save_bytes)
+                if self._file.parts[0] != 'SARC:':
+                    self._file.write_bytes(save_bytes)
+                else:
+                    self.update_sarc(save_bytes)
                 self.saved.done.emit({
                     'path': self._file,
                     'type': 'byml',
@@ -824,15 +951,28 @@ class SaveFileThread(threading.Thread, QtCore.QObject):
                 )
         elif self._file.suffix.lower() == '.msbt':
             try:
-                save_msbt(
-                    self._contents,
-                    self._file,
-                    platform=self._platform.replace(' ', '').lower()
-                )
+                if self._file.parts[0] != 'SARC:':
+                    save_msbt(
+                        self._contents,
+                        self._file,
+                        platform=self._platform.replace(' ', '').lower()
+                    )
+                else:
+                    tmp = tempfile.NamedTemporaryFile('r', suffix='.msbt', delete=False)
+                    tmp_path = Path(tmp.name)
+                    tmp.close()
+                    tmp_path.unlink()
+                    save_msbt(
+                        self._contents,
+                        tmp_path,
+                        platform=self._platform.replace(' ', '').lower()
+                    )
+                    tmp_bytes = tmp_path.read_bytes()
+                    self.update_sarc(tmp_bytes)
                 self.saved.done.emit({
                     'path': self._file,
                     'type': 'msbt',
-                    'text': self._contents.replace('\\','\\\\')
+                    'text': self._contents.replace('\\', '\\\\')
                 })
             except:
                 self.saved.error.emit(
