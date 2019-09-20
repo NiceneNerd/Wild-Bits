@@ -8,7 +8,7 @@ with open('docs/README.md', 'r') as readme:
 
 setup(
     name='wildbits',
-    version='0.7.2',
+    version='0.7.2.post1',
     author='NiceneNerd',
     author_email='macadamiadaze@gmail.com',
     description='A GUI frontend for Leoetlino\'s Python tools for Breath of the Wild modding',
@@ -30,7 +30,7 @@ setup(
     python_requires = '>=3.7',
     install_requires = [
         'pyYaml',
-        'PyMsyt'
+        'PyMsyt',
         'sarc',
         'rstb',
         'aamp',
