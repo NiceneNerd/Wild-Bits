@@ -83,13 +83,28 @@ class AddRstbDialog(QtWidgets.QDialog, Ui_dlgAddRstb):
         if file_name:
             self.txtAddRstbFile.setText(file_name)
             size = rstb.SizeCalculator().calculate_file_size(file_name, self.wiiu, False)
-            if size == 0:
-                QMessageBox.warning(
-                    self,
-                    'Warning',
-                    'The resource size for this kind of file cannot be calculated.'
-                    'You may need to set it by trial and error.'
-                )
+            if not size:
+                ext = Path(file_name).suffix
+                print(ext)
+                if ext in {*AAMP_EXTS, '.bfres', '.sbfres'}:
+                    guess = QMessageBox.question(
+                        self, 'Cannot Calculate',
+                        'The resource size for this kind of file cannot be properly calculated. '
+                        'Do you want to generate a statistics-based estimate?',
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                    ) == QMessageBox.Yes
+                    if guess:
+                        if ext in AAMP_EXTS:
+                            size = guess_aamp_size(Path(file_name))
+                        else:
+                            size = guess_bfres_size(Path(file_name))
+                else:
+                    QMessageBox.warning(
+                        self,
+                        'Warning',
+                        'The resource size for this kind of file cannot be calculated.'
+                        'You may need to set it by trial and error.'
+                    )
             self.spnAddResBytes.setValue(size)
 
     def getResult(self):
@@ -115,13 +130,28 @@ class UpdateRstbDialog(QtWidgets.QDialog, Ui_dlgUpdateRstb):
         if file_name:
             self.txtRstbFile.setText(file_name)
             size = rstb.SizeCalculator().calculate_file_size(file_name, self.wiiu, False)
-            if size == 0:
-                QMessageBox.warning(
-                    self,
-                    'Warning',
-                    'The resource size for this kind of file cannot be calculated.'
-                    'You may need to set it by trial and error.'
-                )
+            if not size:
+                ext = Path(file_name).suffix
+                print(ext)
+                if ext in {*AAMP_EXTS, '.bfres', '.sbfres'}:
+                    guess = QMessageBox.question(
+                        self, 'Cannot Calculate',
+                        'The resource size for this kind of file cannot be properly calculated. '
+                        'Do you want to generate a statistics-based estimate?',
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                    ) == QMessageBox.Yes
+                    if guess:
+                        if ext in AAMP_EXTS:
+                            size = guess_aamp_size(Path(file_name))
+                        else:
+                            size = guess_bfres_size(Path(file_name))
+                else:
+                    QMessageBox.warning(
+                        self,
+                        'Warning',
+                        'The resource size for this kind of file cannot be calculated.'
+                        'You may need to set it by trial and error.'
+                    )
             self.spnResBytes.setValue(size)
 
     def getSizeResult(self):
