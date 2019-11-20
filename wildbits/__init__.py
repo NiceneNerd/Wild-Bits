@@ -594,6 +594,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for line in hf.readlines():
                 parsed = line.split(',')
                 self.rstb_hashes[int(parsed[0], 16)] = parsed[1]
+        try:
+            with open(os.path.join(EXEC_DIR, 'added_hashes'), 'r') as hf:
+                for line in hf.readlines():
+                    parsed = line.split(',')
+                    self.rstb_hashes[int(parsed[0], 16)] = parsed[1]
+        except FileNotFoundError:
+            pass
         file_name = QFileDialog.getOpenFileName(self, "Open RSTB File", "",
             "Resource Size Table Files (*.rsizetable, *.srsizetable);;All Files (*)")[0]
         if file_name:
@@ -632,8 +639,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.open_rstb.set_size(result['entry'], result['size'])
             hash = zlib.crc32(result['entry'].encode('utf8'))
             self.rstb_hashes[hash] = result['entry']
-            with open(os.path.join(EXEC_DIR, './wildbits/name_hashes'), 'a') as hf:
-                hf.write(f'{hash},{result["entry"]}')
+            with open(os.path.join(EXEC_DIR, 'added_hashes'), 'a') as hf:
+                hf.write(f'{hex(hash)},{result["entry"]}\n')
             self.LoadRstb()
 
     def UpdateRstb_Clicked(self):
