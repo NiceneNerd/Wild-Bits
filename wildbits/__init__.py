@@ -950,7 +950,7 @@ class SaveFileThread(threading.Thread, QtCore.QObject):
         if self._file.suffix in AAMP_EXTS:
             try:
                 save_bytes = save_aamp(self._contents)
-                if self._file.suffix.startswith('s'):
+                if self._file.suffix.startswith('.s'):
                     save_bytes = libyaz0.compress(self._file, level=10)
                 if self._file.parts[0] != 'SARC:':
                     self._file.write_bytes(save_bytes)
@@ -969,7 +969,7 @@ class SaveFileThread(threading.Thread, QtCore.QObject):
         elif self._file.suffix in BYML_EXTS:
             try:
                 save_bytes = save_byml(self._contents)
-                if self._file.suffix.startswith('s'):
+                if self._file.suffix.startswith('.s'):
                     save_bytes = libyaz0.compress(self._file, level=10)
                 if self._file.parts[0] != 'SARC:':
                     self._file.write_bytes(save_bytes)
