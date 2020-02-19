@@ -1,0 +1,16 @@
+$body-bg: #2f3136;
+$body-color: #efefef;
+$theme-colors: (
+  "primary": #1584cd,
+  "danger": #e53935,
+  "warning": #ffb300,
+  "info": #00897b,
+  "success": #43a047
+);
+
+@import "../../node_modules/bootstrap/scss/bootstrap";
+
+body {
+  font-family: "Roboto", "Droid Sans", "Helvetica Neue", "Open Sans",
+    "Source Sans Pro", "Segoe UI", sans-serif;
+}
