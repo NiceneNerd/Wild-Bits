@@ -8,7 +8,7 @@ with open('docs/README.md', 'r') as readme:
 
 setup(
     name='wildbits',
-    version='0.7.5',
+    version='0.7.6',
     author='NiceneNerd',
     author_email='macadamiadaze@gmail.com',
     description='A GUI frontend for Leoetlino\'s Python tools for Breath of the Wild modding',
@@ -19,7 +19,7 @@ setup(
     packages = ['wildbits'],
     entry_points = {
         'gui_scripts': [
-            'wildbits = wildbits.__init__:main'
+            'wildbits = wildbits.__main__:main'
         ]
     },
     classifiers = [
@@ -35,8 +35,7 @@ setup(
         'rstb',
         'aamp>=1.3.0.post1',
         'byml',
-        'cython',
-        'libyaz0',
+        'syaz0',
         'PySide2',
         'xxhash'
     ]

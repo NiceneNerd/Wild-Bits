@@ -9,8 +9,7 @@ A GUI frontend for several Python tools using in BotW modding
 * The following `pip` packages, which will be installed automatically:
   * aamp
   * byml
-  * cython
-  * libyaz0
+  * syaz0
   * PyMsyt
   * PySide2
   * pyYaml

@@ -8,13 +8,13 @@ import aamp
 from aamp import yaml_util as yu_aamp
 import byml
 from byml import yaml_util as yu_byml
-import libyaz0
+import syaz0
 import pymsyt
 
 def open_byml(file: Union[Path, bytes]) -> (str, bool):
     byml_bytes = file.read_bytes() if isinstance(file, Path) else file
     if byml_bytes[0:4] == b'Yaz0':
-        byml_bytes = libyaz0.decompress(byml_bytes)
+        byml_bytes = syaz0.decompress(byml_bytes)
     byml_reader = byml.Byml(byml_bytes)
     data = byml_reader.parse()
     dump = StringIO()
@@ -29,7 +29,7 @@ def open_byml(file: Union[Path, bytes]) -> (str, bool):
 def open_aamp(file: Union[Path, bytes]) -> str:
     aamp_bytes = file.read_bytes() if isinstance(file, Path) else file
     if aamp_bytes[0:4] == b'Yaz0':
-        aamp_bytes = libyaz0.decompress(aamp_bytes)
+        aamp_bytes = syaz0.decompress(aamp_bytes)
     reader = aamp.Reader(aamp_bytes)
     data = reader.parse()
     dump = StringIO()
