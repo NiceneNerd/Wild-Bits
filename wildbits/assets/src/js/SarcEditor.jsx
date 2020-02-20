@@ -1,6 +1,11 @@
 import React from "react";
-import ListGroup from "react-bootstrap/ListGroup";
 import { TreeView, TreeItem } from "@material-ui/lab";
+import {
+    FolderIcon,
+    FolderOpenIcon,
+    Archive,
+    Unarchive
+} from "@material-ui/icons";
 
 class SarcEditor extends React.Component {
     constructor(props) {
@@ -13,21 +18,42 @@ class SarcEditor extends React.Component {
         };
     }
 
-    render_sarc(sarc) {
+    render_label(file) {
+        let icon;
+        if (!file.includes(".")) {
+            icon = <FolderIcon />;
+        } else {
+            const ext = file.split(".").slice(-1);
+        }
+    }
+
+    render_node(file, children, path) {
+        if (!path) {
+            path = [file];
+        } else {
+            path.push(file);
+        }
         return (
-            <TreeItem key={sarc.name} nodeId={sarc.name} label={sarc.name}>
-                {sarc.files.map(file =>
-                    file.files ? this.render_sarc(file) : null
+            <TreeItem
+                key={file}
+                nodeId={file}
+                label={file}
+                path={path.join("/")}
+            >
+                {Object.keys(children).map(file =>
+                    this.render_node(file, children[file], path.slice(0))
                 )}
             </TreeItem>
         );
     }
 
     render() {
-        return this.props.sarc.files ? (
+        return Object.keys(this.props.sarc) ? (
             <React.Fragment>
                 <TreeView>
-                    {this.props.sarc.files.map(file => this.render_sarc(file))}
+                    {Object.keys(this.props.sarc).map(file =>
+                        this.render_node(file, this.props.sarc[file])
+                    )}
                 </TreeView>
             </React.Fragment>
         ) : (

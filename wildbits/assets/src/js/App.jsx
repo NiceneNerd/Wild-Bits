@@ -9,21 +9,12 @@ class App extends React.Component {
                 <Tab eventKey="sarc" title="SARC">
                     <SarcEditor
                         sarc={{
-                            name: "TitleBG.pack",
-                            files: [
-                                {
-                                    name: "Actor",
-                                    files: [
-                                        {
-                                            name: "Pack",
-                                            files: [
-                                                "GameROMPlayer.sbactorpack",
-                                                "Obj_SupportApp_Wind.sbactorpack"
-                                            ]
-                                        }
-                                    ]
+                            Actor: {
+                                Pack: {
+                                    "Obj_SupportApp_Wind.sbactorpack": {},
+                                    "GameROMPlayer.sbactorpack": {}
                                 }
-                            ]
+                            }
                         }}
                     />
                 </Tab>
