@@ -10,7 +10,45 @@ $theme-colors: (
 
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
+html, body, #root {
+    height: 100%;
+    overflow-y: hidden;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+
+    .tab-content {
+        flex-grow: 1;
+
+        .tab-pane {
+            height: 100%;
+        }
+    }
+}
+
 body {
   font-family: "Roboto", "Droid Sans", "Helvetica Neue", "Open Sans",
     "Source Sans Pro", "Segoe UI", sans-serif;
+}
+
+.container-fluid {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    .row {
+        flex-grow: 1;
+    }
+}
+
+.sarc {
+    .file-actions {
+        .btn {
+            display: block;
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+    }
 }
