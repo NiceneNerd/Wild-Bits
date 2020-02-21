@@ -10,9 +10,22 @@ class App extends React.Component {
                     <SarcEditor
                         sarc={{
                             Actor: {
+                                "ActorInfo.product.sbyml": {},
                                 Pack: {
-                                    "Obj_SupportApp_Wind.sbactorpack": {},
-                                    "GameROMPlayer.sbactorpack": {}
+                                    "GameROMPlayer.sbactorpack": {
+                                        Actor: {
+                                            ActorLink: {
+                                                "GameROMPlayer.bxml": {}
+                                            },
+                                            AS: {
+                                                "Player_Link_Move.bas": {},
+                                                "Player_Link_Die.bas": {}
+                                            },
+                                            GeneralParams: {
+                                                "Player_Link.bgparamlist": {}
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }}

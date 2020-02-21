@@ -1,29 +1,24 @@
 import React from "react";
 import { TreeView, TreeItem } from "@material-ui/lab";
-import {
-    FolderIcon,
-    FolderOpenIcon,
-    Archive,
-    Unarchive
-} from "@material-ui/icons";
+import { Folder, FolderOpen, Archive, Unarchive } from "@material-ui/icons";
 
 const SARC_EXTS = [
-    ".sarc",
-    ".pack",
-    ".bactorpack",
-    ".bmodelsh",
-    ".beventpack",
-    ".stera",
-    ".stats",
-    ".ssarc",
-    ".spack",
-    ".sbactorpack",
-    ".sbmodelsh",
-    ".sbeventpack",
-    ".sstera",
-    ".sstats",
-    ".sblarc",
-    ".blarc"
+    "sarc",
+    "pack",
+    "bactorpack",
+    "bmodelsh",
+    "beventpack",
+    "stera",
+    "stats",
+    "ssarc",
+    "spack",
+    "sbactorpack",
+    "sbmodelsh",
+    "sbeventpack",
+    "sstera",
+    "sstats",
+    "sblarc",
+    "blarc"
 ];
 
 class SarcEditor extends React.Component {
@@ -40,34 +35,60 @@ class SarcEditor extends React.Component {
     render_label(file) {
         let icon;
         if (!file.includes(".")) {
-            icon = <FolderIcon />;
+            icon = <Folder fontSize="small" />;
         } else {
-            const ext = file.split(".").slice(-1);
-            if (ext in SARC_EXTS) {
-                console.log(file);
-                icon = <Archive />;
+            const ext = file.split(".").slice(-1)[0];
+            if (SARC_EXTS.includes(ext)) {
+                icon = <Archive fontSize="small" />;
             } else {
                 icon = null;
             }
         }
         return (
             <React.Fragment>
-                {icon} {file}
+                {icon} <span style={{ verticalAlign: "text-top" }}>{file}</span>
             </React.Fragment>
         );
     }
 
     render_node(file, children, path) {
+        let type;
+        if (!file.includes(".")) {
+            type = "folder";
+        } else {
+            const ext = file.split(".").slice(-1)[0];
+            if (SARC_EXTS.includes(ext)) {
+                type = "sarc";
+            } else {
+                type = "file";
+            }
+        }
         if (!path) {
             path = [file];
         } else {
-            path.push(file);
+            path.push(type != "sarc" ? file : `${file}/`);
         }
         return (
             <TreeItem
                 key={file}
                 nodeId={file}
-                label={this.render_label(file)}
+                expandIcon={
+                    type == "folder" ? (
+                        <Folder fontSize="small" />
+                    ) : type == "sarc" ? (
+                        <Unarchive fontSize="small" />
+                    ) : null
+                }
+                collapseIcon={
+                    type == "folder" ? (
+                        <FolderOpen fontSize="small" />
+                    ) : type == "sarc" ? (
+                        <Archive fontSize="small" />
+                    ) : null
+                }
+                label={
+                    <span style={{ verticalAlign: "text-top" }}>{file}</span>
+                }
                 path={path.join("/")}
             >
                 {Object.keys(children).map(file =>
