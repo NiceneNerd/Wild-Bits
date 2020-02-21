@@ -30,6 +30,7 @@ setup(
     ],
     python_requires = '>=3.7',
     install_requires = [
+        'botw-utils >= 0.2.0',
         'oead >= 0.11.2',
         'pywebview >= 3.2, < 4.0',
         'rstb',

@@ -7,6 +7,25 @@ import {
     Unarchive
 } from "@material-ui/icons";
 
+const SARC_EXTS = [
+    ".sarc",
+    ".pack",
+    ".bactorpack",
+    ".bmodelsh",
+    ".beventpack",
+    ".stera",
+    ".stats",
+    ".ssarc",
+    ".spack",
+    ".sbactorpack",
+    ".sbmodelsh",
+    ".sbeventpack",
+    ".sstera",
+    ".sstats",
+    ".sblarc",
+    ".blarc"
+];
+
 class SarcEditor extends React.Component {
     constructor(props) {
         super(props);
@@ -24,7 +43,18 @@ class SarcEditor extends React.Component {
             icon = <FolderIcon />;
         } else {
             const ext = file.split(".").slice(-1);
+            if (ext in SARC_EXTS) {
+                console.log(file);
+                icon = <Archive />;
+            } else {
+                icon = null;
+            }
         }
+        return (
+            <React.Fragment>
+                {icon} {file}
+            </React.Fragment>
+        );
     }
 
     render_node(file, children, path) {
@@ -37,7 +67,7 @@ class SarcEditor extends React.Component {
             <TreeItem
                 key={file}
                 nodeId={file}
-                label={file}
+                label={this.render_label(file)}
                 path={path.join("/")}
             >
                 {Object.keys(children).map(file =>
