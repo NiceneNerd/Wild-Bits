@@ -9,6 +9,8 @@ $theme-colors: (
     "info": #00897b,
     "success": #43a047
 );
+$toast-background-color: map-get($map: $theme-colors, $key: "success");
+$toast-color: $body-color;
 
 .btn-group-xs > .btn,
 .btn-xs {
@@ -30,8 +32,11 @@ body,
 #root {
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
+    position: relative;
 
     .tab-content {
+        margin: 0.5rem -0.25rem;
         height: 0;
         flex-grow: 1;
 
@@ -44,6 +49,23 @@ body,
 body {
     font-family: "Roboto", "Droid Sans", "Helvetica Neue", "Open Sans",
         "Source Sans Pro", "Segoe UI", sans-serif;
+}
+
+.nav-tabs {
+    background-color: #000000;
+    border: 0;
+    color: $body-color;
+
+    .nav-item, .nav-link {
+        border: 0;
+        color: $body-color;
+
+        &.active {
+            background-color: transparent;
+            color: $body-color;
+            border-bottom: 0.25rem $body-color solid;
+        }
+    }
 }
 
 .container-fluid {

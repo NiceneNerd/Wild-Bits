@@ -52,6 +52,7 @@ class SarcEditor extends React.Component {
         super(props);
         this.state = {
             sarc: {},
+            modified: false,
             path: "",
             be: false,
             selected: null,
@@ -62,6 +63,7 @@ class SarcEditor extends React.Component {
         this.open_sarc = this.open_sarc.bind(this);
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
+        this.delete_file = this.delete_file.bind(this);
     }
 
     render_node(file, children, path) {
@@ -120,7 +122,7 @@ class SarcEditor extends React.Component {
 
     open_sarc() {
         pywebview.api.open_sarc().then(
-            res => this.setState({ ...res }),
+            res => this.setState({ ...res, modified: false }),
             () => (this.file_infos = {})
         );
     }
@@ -128,23 +130,45 @@ class SarcEditor extends React.Component {
     extract_file() {
         pywebview.api.extract_sarc_file(this.state.selected.path).then(res => {
             if (res.error) {
-                this.onError(res.error);
+                this.props.onError(res.error);
                 return;
             }
         });
     }
 
     rename_file() {
-        pywebview
+        pywebview.api
             .rename_sarc_file(this.state.selected.path, this.state.newName)
             .then(res => {
                 this.setState({ showRename: false });
                 if (res.error) {
-                    this.onError(res.error);
+                    this.props.onError(res.error);
                     return;
                 }
-                this.setState({ sarc: res });
+                this.setState({ sarc: res, modified: true }, () =>
+                    this.props.showToast(`Rename successful`)
+                );
             });
+    }
+
+    delete_file() {
+        const file = this.state.selected.file;
+        this.props.showConfirm(
+            `Are you sure you want to delete ${file}?`,
+            () => {
+                pywebview.api
+                    .delete_sarc_file(this.state.selected.path)
+                    .then(res => {
+                        if (res.error) {
+                            this.props.onError(res.error);
+                            return;
+                        }
+                        this.setState({ sarc: res, modified: true }, () =>
+                            this.props.showToast(`Deleted ${file}`)
+                        );
+                    });
+            }
+        );
     }
 
     handleSelect(path) {
@@ -231,7 +255,21 @@ class SarcEditor extends React.Component {
                                 </ButtonGroup>
                             </ButtonToolbar>
                         </Col>
-                        <Col>{this.state.path}</Col>
+                        <Col>
+                            <div
+                                style={{
+                                    verticalAlign: "middle",
+                                    textAlign: "right"
+                                }}
+                            >
+                                <small class="text-secondary">
+                                    {this.state.path}
+                                </small>{" "}
+                                {this.state.modified && (
+                                    <Badge variant="success">Modified</Badge>
+                                )}
+                            </div>
+                        </Col>
                     </Row>
                     <Row style={{ flexGrow: 1, minHeight: 0 }}>
                         <Col className="tree">
@@ -282,7 +320,12 @@ class SarcEditor extends React.Component {
                                 <Row>
                                     <Col>
                                         <Button
-                                            disabled={!this.state.selected}
+                                            disabled={
+                                                !this.state.selected ||
+                                                !this.state.selected.file.includes(
+                                                    "."
+                                                )
+                                            }
                                             onClick={() =>
                                                 this.setState({
                                                     showRename: true
@@ -293,7 +336,17 @@ class SarcEditor extends React.Component {
                                         </Button>
                                     </Col>
                                     <Col>
-                                        <Button>Delete</Button>
+                                        <Button
+                                            disabled={
+                                                !this.state.selected ||
+                                                !this.state.selected.file.includes(
+                                                    "."
+                                                )
+                                            }
+                                            onClick={this.delete_file}
+                                        >
+                                            Delete
+                                        </Button>
                                     </Col>
                                 </Row>
                             </Container>

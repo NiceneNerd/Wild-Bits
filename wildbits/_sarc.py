@@ -88,7 +88,23 @@ def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
     return sarcs[-1]
 
 
+def delete_file(root_sarc: Sarc, file: str) -> Sarc:
+    parent = get_parent_sarc(root_sarc, file)
+    filename = file.split('//')[-1]
+    new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
+    del new_sarc.files[filename]
+    while root_sarc != parent:
+        _, child = new_sarc.write()
+        file = file[0:file.rindex('//')]
+        parent = get_parent_sarc(root_sarc, file)
+        new_sarc = SarcWriter.from_sarc(parent)
+        new_sarc.files[file] = child
+    return Sarc(new_sarc.write()[1])
+
+
 def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
+    if any(char in new_name for char in "\/:*?\"'<>|"):
+        raise ValueError(f'{new_name} is not a valid file name.')
     parent = get_parent_sarc(root_sarc, file)
     filename = file.split('//')[-1]
     new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
