@@ -1,16 +1,26 @@
 $body-bg: #2f3136;
 $body-color: #efefef;
 $theme-colors: (
-  "primary": #1584cd,
-  "danger": #e53935,
-  "warning": #ffb300,
-  "info": #00897b,
-  "success": #43a047
+    "primary": #1584cd,
+    "danger": #e53935,
+    "warning": #ffb300,
+    "info": #00897b,
+    "success": #43a047
 );
+
+.btn-group-xs > .btn,
+.btn-xs {
+    padding: 0.125rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 0.5;
+    border-radius: 0.2rem;
+}
 
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
-html, body, #root {
+html,
+body,
+#root {
     height: 100%;
     overflow-y: hidden;
 }
@@ -20,6 +30,7 @@ html, body, #root {
     flex-direction: column;
 
     .tab-content {
+        height: 0;
         flex-grow: 1;
 
         .tab-pane {
@@ -29,26 +40,40 @@ html, body, #root {
 }
 
 body {
-  font-family: "Roboto", "Droid Sans", "Helvetica Neue", "Open Sans",
-    "Source Sans Pro", "Segoe UI", sans-serif;
+    font-family: "Roboto", "Droid Sans", "Helvetica Neue", "Open Sans",
+        "Source Sans Pro", "Segoe UI", sans-serif;
 }
 
 .container-fluid {
     display: flex;
     flex-direction: column;
     height: 100%;
-
-    .row {
-        flex-grow: 1;
-    }
 }
 
 .sarc {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+
+    .tree {
+        height: 100%;
+        overflow-y: auto;
+    }
+
     .file-actions {
+        .col {
+            padding: 0 5px;
+        }
+
         .btn {
             display: block;
             margin-bottom: 0.5rem;
             width: 100%;
+        }
+
+        .filename {
+            overflow-x: hidden;
+            text-overflow: ellipsis;
         }
     }
 }

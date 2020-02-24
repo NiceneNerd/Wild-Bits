@@ -20,18 +20,51 @@ class Api:
         result = self.window.create_file_dialog(webview.OPEN_DIALOG)
         if result:
             file = Path(result[0])
-            self._open_sarc, tree = _sarc.open_sarc(file)
+            try:
+                self._open_sarc, tree = _sarc.open_sarc(file)
+            except ValueError:
+                return {}
             return {
                 'path': str(file.resolve()),
                 'sarc': tree,
                 'be': self._open_sarc.get_endianness() == oead.Endianness.Big
             }
+        else:
+            return {}
+        
+    def get_file_info(self, file: str, wiiu: bool) -> dict:
+        return _sarc.get_nested_file_meta(self._open_sarc, file, wiiu)
+    
+    def extract_sarc_file(self, file: str) -> dict:
+        filename = Path(file).name
+        output = self.window.create_file_dialog(
+            webview.SAVE_DIALOG,
+            save_filename=filename
+        )
+        if output:
+            out = Path(output[0])
+            try:
+                out.write_bytes(
+                    _sarc.get_nested_file_data(
+                        self._open_sarc, file, unyaz=False
+                    )
+                )
+                return {
+                    'success': True
+                }
+            except Exception as e:
+                return {
+                    'error': str(e)
+                }
 
 
 def main():
     api = Api()
     api.window = webview.create_window('Wild Bits', url=str(EXEC_DIR / 'assets' / 'index.html'), js_api=api)
-    webview.start(debug=True, http_server=False)
+    webview.start(
+        debug=True,
+        http_server=False
+    )
 
 
 if __name__ == "__main__":
