@@ -55,10 +55,13 @@ class SarcEditor extends React.Component {
             path: "",
             be: false,
             selected: null,
-            showRename: false
+            showRename: false,
+            newName: ""
         };
+        this.file_infos = {};
         this.open_sarc = this.open_sarc.bind(this);
         this.extract_file = this.extract_file.bind(this);
+        this.rename_file = this.rename_file.bind(this);
     }
 
     render_node(file, children, path) {
@@ -116,18 +119,33 @@ class SarcEditor extends React.Component {
     }
 
     open_sarc() {
-        pywebview.api.open_sarc().then(res => this.setState({ ...res }));
+        pywebview.api.open_sarc().then(
+            res => this.setState({ ...res }),
+            () => (this.file_infos = {})
+        );
     }
 
     extract_file() {
         pywebview.api.extract_sarc_file(this.state.selected.path).then(res => {
             if (res.error) {
                 this.onError(res.error);
+                return;
             }
         });
     }
 
-    rename_file() {}
+    rename_file() {
+        pywebview
+            .rename_sarc_file(this.state.selected.path, this.state.newName)
+            .then(res => {
+                this.setState({ showRename: false });
+                if (res.error) {
+                    this.onError(res.error);
+                    return;
+                }
+                this.setState({ sarc: res });
+            });
+    }
 
     handleSelect(path) {
         pywebview.api
@@ -264,6 +282,7 @@ class SarcEditor extends React.Component {
                                 <Row>
                                     <Col>
                                         <Button
+                                            disabled={!this.state.selected}
                                             onClick={() =>
                                                 this.setState({
                                                     showRename: true
@@ -312,12 +331,21 @@ class SarcEditor extends React.Component {
                         <Modal.Title>Rename File</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
-                        <div>Rename {this.state.selected?.file}:</div>
+                        <p>
+                            <big>Rename {this.state.selected?.file}:</big>
+                        </p>
                         <InputGroup className="mb-3">
                             <InputGroup.Prepend>
                                 <InputGroup.Text>New name</InputGroup.Text>
                             </InputGroup.Prepend>
-                            <FormControl />
+                            <FormControl
+                                value={this.state.newName}
+                                onChange={e =>
+                                    this.setState({
+                                        newName: e.currentTarget.value
+                                    })
+                                }
+                            />
                         </InputGroup>
                     </Modal.Body>
                     <Modal.Footer>
@@ -327,10 +355,7 @@ class SarcEditor extends React.Component {
                         >
                             Close
                         </Button>
-                        <Button
-                            variant="primary"
-                            onClick={() => this.setState({ showRename: false })}
-                        >
+                        <Button variant="primary" onClick={this.rename_file}>
                             Rename
                         </Button>
                     </Modal.Footer>

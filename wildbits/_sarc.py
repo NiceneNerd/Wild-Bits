@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Mapping, Union
 
 from botw import extensions
-from oead import Sarc
+from oead import Sarc, SarcWriter, Endianness, Bytes
 from oead.yaz0 import decompress
 from . import util
 
@@ -33,26 +33,16 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict):
                 )
             )
         return tree
+    get_nested_file_data.cache_clear()
+    get_nested_file_meta.cache_clear()
     return sarc, get_sarc_tree(sarc)
 
 
 @lru_cache(10)
 def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
-    if file.endswith('/'):
-        file = file[0:-1]
-    nests = file.split('//')
-    sarcs: List[Sarc] = [
-        sarc
-    ]
-    i = 0
-    while i < len(nests) - 1:
-        nf = sarcs[i - 1].get_file(nests[i])
-        sarc_bytes = util.unyaz_if_yazd(
-            nf.data
-        )
-        sarcs.append(Sarc(sarc_bytes))
-        i += 1
-    file_bytes = sarcs[-1].get_file(nests[-1]).data
+    file_bytes = get_parent_sarc(sarc, file).get_file(
+        file.split('//')[-1]
+    ).data
     return memoryview(file_bytes) if not unyaz else memoryview(
         util.unyaz_if_yazd(file_bytes)
     )
@@ -77,6 +67,42 @@ def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
             (extensions.AAMP_EXTS | extensions.BYML_EXTS)
         )
     }
+    
+
+@lru_cache(8)
+def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
+    if file.endswith('/'):
+        file = file[0:-1]
+    nests = file.split('//')
+    sarcs: List[Sarc] = [
+        root_sarc
+    ]
+    i = 0
+    while i < len(nests) - 1:
+        nf = sarcs[i - 1].get_file(nests[i])
+        sarc_bytes = util.unyaz_if_yazd(
+            nf.data
+        )
+        sarcs.append(Sarc(sarc_bytes))
+        i += 1
+    return sarcs[-1]
+
+
+def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
+    parent = get_parent_sarc(root_sarc, file)
+    filename = file.split('//')[-1]
+    new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
+    del new_sarc.files[filename]
+    new_sarc.files[
+        str(Path(filename).parent / new_name)
+    ] = Bytes(parent.get_file(filename).data)
+    while root_sarc != parent:
+        _, child = new_sarc.write()
+        file = file[0:file.rindex('//')]
+        parent = get_parent_sarc(root_sarc, file)
+        new_sarc = SarcWriter.from_sarc(parent)
+        new_sarc.files[file] = child
+    return Sarc(new_sarc.write()[1])
 
 
 def _dict_merge(dct: dict, merge_dct: dict, overwrite_lists: bool = False):
