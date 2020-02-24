@@ -1,15 +1,16 @@
 from functools import lru_cache, reduce
 from pathlib import Path
-from typing import List, Mapping
+from typing import List, Mapping, Union
 
 from botw import extensions
 from oead import Sarc
 from oead.yaz0 import decompress
 from . import util
 
-def open_sarc(path: Path) -> (Sarc, dict):
-    data = util.unyaz_if_yazd(path.read_bytes())
-    sarc = Sarc(data)
+def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict):
+    if isinstance(sarc, Path):
+        data = util.unyaz_if_yazd(sarc.read_bytes())
+        sarc = Sarc(data)
     def get_sarc_tree(parent_sarc: Sarc) -> {}:
         tree = {}
         for file in parent_sarc.get_files():

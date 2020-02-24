@@ -56,13 +56,23 @@ class Api:
                 return {
                     'error': str(e)
                 }
+    
+    def rename_sarc_file(self, file: str, new_name: str) -> dict:
+        try:
+            new_sarc: oead.SarcWriter = oead.SarcWriter.from_sarc(self._open_sarc)
+            data = self._open_sarc.get_file(file).data
+            new_sarc.files[new_name] = data
+            self._open_sarc, tree = _sarc.open_sarc(oead.Sarc())
+        except (ValueError, KeyError) as e:
+            return {'error': str(e)}
+        return tree
 
 
 def main():
     api = Api()
     api.window = webview.create_window('Wild Bits', url=str(EXEC_DIR / 'assets' / 'index.html'), js_api=api)
     webview.start(
-        debug=True,
+        debug=False,
         http_server=False
     )
 
