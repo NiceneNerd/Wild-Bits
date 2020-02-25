@@ -70,6 +70,7 @@ class SarcEditor extends React.Component {
         this.open_sarc = this.open_sarc.bind(this);
         this.create_sarc = this.create_sarc.bind(this);
         this.save_sarc = this.save_sarc.bind(this);
+        this.add_file = this.add_file.bind(this);
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
         this.delete_file = this.delete_file.bind(this);
@@ -162,6 +163,29 @@ class SarcEditor extends React.Component {
         });
     }
 
+    add_file() {
+        console.log("hello");
+        const file = this.state.addFile.split(/[\\\/]/).slice(-1)[0];
+        pywebview.api
+            .add_sarc_file(this.state.addFile, this.state.addPath)
+            .then(res => {
+                if (res.error) {
+                    this.props.onError(res.error);
+                    return;
+                }
+                this.setState(
+                    {
+                        sarc: res,
+                        modified: true,
+                        showAdd: false,
+                        addFile: "",
+                        addPath: ""
+                    },
+                    () => this.props.showToast(`Added ${file} to SARC`)
+                );
+            });
+    }
+
     extract_file() {
         pywebview.api.extract_sarc_file(this.state.selected.path).then(res => {
             if (res.error) {
@@ -213,8 +237,6 @@ class SarcEditor extends React.Component {
             this.setState({ addFile: file });
         }
     }
-
-    add_file() {}
 
     handleSelect(path) {
         if (!this.file_infos.hasOwnProperty(path)) {
@@ -604,7 +626,15 @@ class SarcEditor extends React.Component {
                                     Path
                                 </Form.Label>
                                 <Col sm={10}>
-                                    <Form.Control placeholder="Path/In/Sarc/For.File" />
+                                    <Form.Control
+                                        placeholder="Path/In/Sarc/For.File"
+                                        value={this.state.addPath}
+                                        onChange={e =>
+                                            this.setState({
+                                                addPath: e.currentTarget.value
+                                            })
+                                        }
+                                    />
                                 </Col>
                             </Form.Group>
                         </Form>
@@ -616,7 +646,9 @@ class SarcEditor extends React.Component {
                         >
                             Close
                         </Button>
-                        <Button variant="primary">Add</Button>
+                        <Button variant="primary" onClick={this.add_file}>
+                            Add
+                        </Button>
                     </Modal.Footer>
                 </Modal>
             </>

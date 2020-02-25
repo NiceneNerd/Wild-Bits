@@ -125,7 +125,7 @@ class Api:
             self._open_sarc, tree = _sarc.open_sarc(
                 _sarc.add_file(self._open_sarc, sarc_path, data)
             )
-        except (ValueError, KeyError, OSError, FileNotFoundError) as e:
+        except (AttributeError, ValueError, KeyError, OSError, TypeError, FileNotFoundError) as e:
             return {'error': str(e)}
         return tree
 
@@ -134,9 +134,9 @@ def main():
     api = Api()
     api.window = webview.create_window('Wild Bits', url=str(EXEC_DIR / 'assets' / 'index.html'), js_api=api)
     webview.start(
-        debug=False,
+        debug=True,
         http_server=False,
-        gui='qt'
+        gui='gtk'
     )
 
 
