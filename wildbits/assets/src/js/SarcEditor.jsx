@@ -11,7 +11,8 @@ import {
     Tooltip,
     Modal,
     InputGroup,
-    FormControl
+    FormControl,
+    Form
 } from "react-bootstrap";
 import { TreeView, TreeItem } from "@material-ui/lab";
 import {
@@ -57,10 +58,14 @@ class SarcEditor extends React.Component {
             be: false,
             selected: null,
             showRename: false,
-            newName: ""
+            newName: "",
+            showAdd: false,
+            addName: "",
+            showNew: false
         };
         this.file_infos = {};
         this.open_sarc = this.open_sarc.bind(this);
+        this.save_sarc = this.save_sarc.bind(this);
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
         this.delete_file = this.delete_file.bind(this);
@@ -127,12 +132,25 @@ class SarcEditor extends React.Component {
         );
     }
 
+    save_sarc(path) {
+        pywebview.api.save_sarc(path || "").then(res => {
+            if (res.error) {
+                if (res.error != "Cancelled") this.props.onError(res.error);
+                return;
+            }
+            this.setState({ modified: false }, () =>
+                this.props.showToast("Saved")
+            );
+        });
+    }
+
     extract_file() {
         pywebview.api.extract_sarc_file(this.state.selected.path).then(res => {
             if (res.error) {
                 this.props.onError(res.error);
                 return;
             }
+            this.props.showToast(`${this.state.selected.path} extracted`);
         });
     }
 
@@ -172,25 +190,36 @@ class SarcEditor extends React.Component {
     }
 
     handleSelect(path) {
-        pywebview.api
-            .get_file_info(path, this.state.be)
-            .then(res => this.setState({ selected: { path, ...res } }));
+        if (!this.file_infos.hasOwnProperty(path)) {
+            pywebview.api.get_file_info(path, this.state.be).then(res => {
+                this.setState({ selected: { path, ...res } });
+                this.file_infos[path] = res;
+            });
+        } else {
+            this.setState({ selected: { path, ...this.file_infos[path] } });
+        }
     }
 
     render() {
         return (
             <>
                 <Container fluid className="sarc">
-                    <Row>
+                    <Row style={{ paddingBottom: "0.25rem" }}>
                         <Col style={{ flexGrow: 0, minWidth: "fit-content" }}>
                             <ButtonToolbar>
-                                <ButtonGroup size="xs">
+                                <ButtonGroup size="xs" className="mr-2">
                                     <OverlayTrigger
                                         placement="bottom"
                                         overlay={<Tooltip>New</Tooltip>}
                                     >
                                         <Button>
-                                            <Create />
+                                            <Create
+                                                onClick={() =>
+                                                    this.setState({
+                                                        showNew: true
+                                                    })
+                                                }
+                                            />
                                         </Button>
                                     </OverlayTrigger>
                                     <OverlayTrigger
@@ -207,7 +236,11 @@ class SarcEditor extends React.Component {
                                         placement="bottom"
                                         overlay={<Tooltip>Save</Tooltip>}
                                     >
-                                        <Button>
+                                        <Button
+                                            onClick={() =>
+                                                this.save_sarc(this.state.path)
+                                            }
+                                        >
                                             <Save />
                                         </Button>
                                     </OverlayTrigger>
@@ -215,12 +248,13 @@ class SarcEditor extends React.Component {
                                         placement="bottom"
                                         overlay={<Tooltip>Save As...</Tooltip>}
                                     >
-                                        <Button>
+                                        <Button
+                                            onClick={() => this.save_sarc("")}
+                                        >
                                             <SaveAlt />
                                         </Button>
                                     </OverlayTrigger>
                                 </ButtonGroup>
-                                <span>&nbsp;&nbsp;</span>
                                 <ButtonGroup size="xs">
                                     <OverlayTrigger
                                         placement="bottom"
@@ -262,9 +296,37 @@ class SarcEditor extends React.Component {
                                     textAlign: "right"
                                 }}
                             >
-                                <small class="text-secondary">
+                                <small className="text-secondary">
                                     {this.state.path}
                                 </small>{" "}
+                                {Object.keys(this.state.sarc).length > 0 && (
+                                    <>
+                                        {this.state.be ? (
+                                            <OverlayTrigger
+                                                placement="bottom"
+                                                overlay={
+                                                    <Tooltip>
+                                                        Big Endian
+                                                    </Tooltip>
+                                                }
+                                            >
+                                                <Badge variant="info">BE</Badge>
+                                            </OverlayTrigger>
+                                        ) : (
+                                            <OverlayTrigger
+                                                placement="bottom"
+                                                overlay={
+                                                    <Tooltip>
+                                                        Little Endian
+                                                    </Tooltip>
+                                                }
+                                            >
+                                                <Badge variant="info">LE</Badge>
+                                            </OverlayTrigger>
+                                        )}
+                                        {"  "}
+                                    </>
+                                )}
                                 {this.state.modified && (
                                     <Badge variant="success">Modified</Badge>
                                 )}
@@ -274,7 +336,7 @@ class SarcEditor extends React.Component {
                     <Row style={{ flexGrow: 1, minHeight: 0 }}>
                         <Col className="tree">
                             {Object.keys(this.state.sarc) ? (
-                                <React.Fragment>
+                                <>
                                     <TreeView>
                                         {Object.keys(
                                             this.state.sarc
@@ -285,7 +347,7 @@ class SarcEditor extends React.Component {
                                             )
                                         )}
                                     </TreeView>
-                                </React.Fragment>
+                                </>
                             ) : (
                                 <p>No SARC open</p>
                             )}
@@ -366,10 +428,10 @@ class SarcEditor extends React.Component {
                                     {this.state.selected.size}
                                     <br />
                                     {this.state.selected.modified && (
-                                        <React.Fragment>
+                                        <>
                                             <strong>RSTB:</strong>{" "}
                                             {this.state.selected.rstb[0]}
-                                        </React.Fragment>
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -411,6 +473,39 @@ class SarcEditor extends React.Component {
                         <Button variant="primary" onClick={this.rename_file}>
                             Rename
                         </Button>
+                    </Modal.Footer>
+                </Modal>
+                <Modal
+                    show={this.state.showNew}
+                    onHide={() => this.setState({ showNew: false })}
+                >
+                    <Modal.Header closeButton>
+                        <Modal.Title>New SARC</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <p>
+                            <big>Select new SARC options:</big>
+                        </p>
+                        <Form>
+                            <Form.Check label="Use big endian" id="new-be" />
+                            <Form.Group>
+                                <Form.Label>Alignment</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    id="new-align"
+                                    value={4}
+                                />
+                            </Form.Group>
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button
+                            variant="secondary"
+                            onClick={() => this.setState({ showNew: false })}
+                        >
+                            Close
+                        </Button>
+                        <Button variant="primary">Create</Button>
                     </Modal.Footer>
                 </Modal>
             </>

@@ -15,7 +15,10 @@ class Api:
     _open_byml: Union[oead.byml.Hash, oead.byml.Array]
     _open_pio: oead.aamp.ParameterIO
     _open_msbt: dict
-
+    
+    ###############
+    # SARC Editor #
+    ###############
     def open_sarc(self) -> dict:
         result = self.window.create_file_dialog(webview.OPEN_DIALOG)
         if result:
@@ -31,6 +34,24 @@ class Api:
             }
         else:
             return {}
+        
+    def save_sarc(self, path: str = '') -> dict:
+        if not path:
+            result = self.window.create_file_dialog(webview.SAVE_DIALOG)
+            if result:
+                path = result[0]
+            else:
+                return {'error': 'Cancelled'}
+        path = Path(path)
+        try:
+            path.write_bytes(
+                oead.SarcWriter.from_sarc(self._open_sarc).write()[1]
+            )
+        except (ValueError, OSError) as e:
+            return {'error': str(e)}
+        else:
+            return {}
+        
         
     def get_file_info(self, file: str, wiiu: bool) -> dict:
         return _sarc.get_nested_file_meta(self._open_sarc, file, wiiu)
@@ -81,7 +102,8 @@ def main():
     api.window = webview.create_window('Wild Bits', url=str(EXEC_DIR / 'assets' / 'index.html'), js_api=api)
     webview.start(
         debug=True,
-        http_server=False, gui='cef'
+        http_server=False,
+        gui='qt'
     )
 
 

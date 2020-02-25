@@ -9,7 +9,10 @@ $theme-colors: (
     "info": #00897b,
     "success": #43a047
 );
-$toast-background-color: map-get($map: $theme-colors, $key: "success");
+$toast-background-color: map-get(
+    $map: $theme-colors,
+    $key: "success"
+);
 $toast-color: $body-color;
 
 .btn-group-xs > .btn,
@@ -56,7 +59,8 @@ body {
     border: 0;
     color: $body-color;
 
-    .nav-item, .nav-link {
+    .nav-item,
+    .nav-link {
         border: 0;
         color: $body-color;
 
@@ -82,6 +86,10 @@ body {
     .tree {
         height: 100%;
         overflow-y: auto;
+
+        .MuiTreeItem-root:focus > .MuiTreeItem-content {
+            background-color: map-get($map: $theme-colors, $key: "primary");
+        }
     }
 
     .file-actions {

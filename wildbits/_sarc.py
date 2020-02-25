@@ -40,6 +40,8 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict):
 
 @lru_cache(10)
 def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
+    if file.endswith('/'):
+        file = file[0:-1]
     file_bytes = get_parent_sarc(sarc, file).get_file(
         file.split('//')[-1]
     ).data
@@ -50,6 +52,8 @@ def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
 
 @lru_cache(32)
 def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
+    if file.endswith('/'):
+        file = file[0:-1]
     data: memoryview = get_nested_file_data(sarc, file)
     filename = Path(file).name.replace('.s', '.')
     return {
@@ -89,6 +93,8 @@ def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
 
 
 def delete_file(root_sarc: Sarc, file: str) -> Sarc:
+    if file.endswith('/'):
+        file = file[0:-1]
     parent = get_parent_sarc(root_sarc, file)
     filename = file.split('//')[-1]
     new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
@@ -103,6 +109,8 @@ def delete_file(root_sarc: Sarc, file: str) -> Sarc:
 
 
 def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
+    if file.endswith('/'):
+        file = file[0:-1]
     if any(char in new_name for char in "\/:*?\"'<>|"):
         raise ValueError(f'{new_name} is not a valid file name.')
     parent = get_parent_sarc(root_sarc, file)
