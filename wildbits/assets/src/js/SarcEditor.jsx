@@ -71,6 +71,7 @@ class SarcEditor extends React.Component {
         this.create_sarc = this.create_sarc.bind(this);
         this.save_sarc = this.save_sarc.bind(this);
         this.add_file = this.add_file.bind(this);
+        this.update_folder = this.update_folder.bind(this);
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
         this.delete_file = this.delete_file.bind(this);
@@ -184,6 +185,18 @@ class SarcEditor extends React.Component {
                     () => this.props.showToast(`Added ${file} to SARC`)
                 );
             });
+    }
+
+    update_folder() {
+        pywebview.api.update_sarc_folder().then(res => {
+            if (res.error) {
+                this.props.onError(res.error);
+                return;
+            }
+            this.setState({ sarc: res, modified: true }, () =>
+                this.props.showToast("SARC updated")
+            );
+        });
     }
 
     extract_file() {
@@ -310,6 +323,7 @@ class SarcEditor extends React.Component {
                                         overlay={<Tooltip>Add File...</Tooltip>}
                                     >
                                         <Button
+                                            disabled={!this.state.sarc}
                                             variant="success"
                                             onClick={() =>
                                                 this.setState({ showAdd: true })
@@ -326,7 +340,11 @@ class SarcEditor extends React.Component {
                                             </Tooltip>
                                         }
                                     >
-                                        <Button variant="success">
+                                        <Button
+                                            disabled={!this.state.sarc}
+                                            variant="success"
+                                            onClick={this.update_folder}
+                                        >
                                             <FileCopy />
                                         </Button>
                                     </OverlayTrigger>
@@ -336,7 +354,10 @@ class SarcEditor extends React.Component {
                                             <Tooltip>Extract SARC...</Tooltip>
                                         }
                                     >
-                                        <Button variant="success">
+                                        <Button
+                                            disabled={!this.state.sarc}
+                                            variant="success"
+                                        >
                                             <Unarchive />
                                         </Button>
                                     </OverlayTrigger>

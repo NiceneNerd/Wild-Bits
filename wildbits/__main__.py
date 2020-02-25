@@ -129,6 +129,18 @@ class Api:
             return {'error': str(e)}
         return tree
 
+    def update_sarc_folder(self) -> dict:
+        result = self.window.create_file_dialog(webview.FOLDER_DIALOG)
+        if not result:
+            return {}
+        try:
+            self._open_sarc, tree = _sarc.open_sarc(
+                _sarc.update_from_folder(self._open_sarc, Path(result[0]))
+            )
+        except (FileNotFoundError, OSError, ValueError) as e:
+            return {'error': str(e)}
+        return tree
+
 
 def main():
     api = Api()

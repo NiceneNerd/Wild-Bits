@@ -145,6 +145,13 @@ def add_file(root_sarc: Sarc, file: str, data: memoryview) -> Sarc:
     return Sarc(new_sarc.write()[1])
 
 
+def update_from_folder(sarc: Sarc, folder: Path) -> Sarc:
+    new_sarc: SarcWriter = SarcWriter.from_sarc(sarc)
+    for file in {f for f in folder.rglob('**/*') if f.is_file()}:
+        new_sarc.files[file.relative_to(folder).as_posix()] = file.read_bytes()
+    return Sarc(new_sarc.write()[1])
+
+
 def _dict_merge(dct: dict, merge_dct: dict, overwrite_lists: bool = False):
     for k in merge_dct:
         if (k in dct and isinstance(dct[k], dict)
