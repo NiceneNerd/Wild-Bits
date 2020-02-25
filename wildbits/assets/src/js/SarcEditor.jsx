@@ -52,7 +52,7 @@ class SarcEditor extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            sarc: {},
+            sarc: null,
             modified: false,
             path: "",
             be: false,
@@ -61,10 +61,12 @@ class SarcEditor extends React.Component {
             newName: "",
             showAdd: false,
             addName: "",
-            showNew: false
+            showNew: false,
+            showAdd: false
         };
         this.file_infos = {};
         this.open_sarc = this.open_sarc.bind(this);
+        this.create_sarc = this.create_sarc.bind(this);
         this.save_sarc = this.save_sarc.bind(this);
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
@@ -123,6 +125,19 @@ class SarcEditor extends React.Component {
                 )}
             </TreeItem>
         );
+    }
+
+    create_sarc() {
+        pywebview.api
+            .create_sarc(
+                document.getElementById("new-be").checked,
+                document.getElementById("new-align").value
+            )
+            .then(
+                res =>
+                    this.setState({ ...res, modified: false, showNew: false }),
+                () => (this.file_infos = {})
+            );
     }
 
     open_sarc() {
@@ -260,7 +275,12 @@ class SarcEditor extends React.Component {
                                         placement="bottom"
                                         overlay={<Tooltip>Add File...</Tooltip>}
                                     >
-                                        <Button variant="success">
+                                        <Button
+                                            variant="success"
+                                            onClick={() =>
+                                                this.setState({ showAdd: true })
+                                            }
+                                        >
                                             <Add />
                                         </Button>
                                     </OverlayTrigger>
@@ -296,10 +316,14 @@ class SarcEditor extends React.Component {
                                     textAlign: "right"
                                 }}
                             >
-                                <small className="text-secondary">
-                                    {this.state.path}
-                                </small>{" "}
-                                {Object.keys(this.state.sarc).length > 0 && (
+                                <Badge variant="secondary">
+                                    {this.state.path
+                                        ? this.state.path
+                                        : this.state.sarc
+                                        ? "Unsaved SARC"
+                                        : ""}
+                                </Badge>{" "}
+                                {this.state.sarc && (
                                     <>
                                         {this.state.be ? (
                                             <OverlayTrigger
@@ -335,7 +359,7 @@ class SarcEditor extends React.Component {
                     </Row>
                     <Row style={{ flexGrow: 1, minHeight: 0 }}>
                         <Col className="tree">
-                            {Object.keys(this.state.sarc) ? (
+                            {this.state.sarc ? (
                                 <>
                                     <TreeView>
                                         {Object.keys(
@@ -488,13 +512,17 @@ class SarcEditor extends React.Component {
                         </p>
                         <Form>
                             <Form.Check label="Use big endian" id="new-be" />
-                            <Form.Group>
-                                <Form.Label>Alignment</Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    id="new-align"
-                                    value={4}
-                                />
+                            <Form.Group as={Row}>
+                                <Form.Label column sm={3}>
+                                    Alignment (advanced)
+                                </Form.Label>
+                                <Col sm={9} className="mt-1">
+                                    <Form.Control
+                                        type="number"
+                                        id="new-align"
+                                        defaultValue={4}
+                                    />
+                                </Col>
                             </Form.Group>
                         </Form>
                     </Modal.Body>
@@ -505,7 +533,64 @@ class SarcEditor extends React.Component {
                         >
                             Close
                         </Button>
-                        <Button variant="primary">Create</Button>
+                        <Button variant="primary" onClick={this.create_sarc}>
+                            Create
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+                <Modal
+                    show={this.state.showAdd}
+                    onHide={() => this.setState({ showAdd: false })}
+                >
+                    <Modal.Header>
+                        <Modal.Title>Add File to SARC</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <p>
+                            Select the file you wish to add to this SARC, and
+                            then enter the full path at which it should be
+                            added, e.g.{" "}
+                            <code>Actor/ActorLink/GameROMPlayer.bxml</code>. You
+                            can also use <code>//</code> to provide a path
+                            inside of a nested SARC, for example,{" "}
+                            <code>
+                                Actor/Pack/GameROMPlayer.sbactorpack//Actor/ActorLink/GameROMPlayer.bxml
+                            </code>
+                            .
+                        </p>
+                        <Form>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm={2}>
+                                    File
+                                </Form.Label>
+                                <Col sm={10}>
+                                    <Form.Control>
+                                        <InputGroup.Append>
+                                            <Button variant="secondary">
+                                                Browse...
+                                            </Button>
+                                        </InputGroup.Append>
+                                    </Form.Control>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm={2}>
+                                    Path
+                                </Form.Label>
+                                <Col sm={10}>
+                                    <Form.Control placeholder="Path/In/Sarc/For.File" />
+                                </Col>
+                            </Form.Group>
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button
+                            variant="secondary"
+                            onHide={() => this.setState({ showAdd: false })}
+                        >
+                            Close
+                        </Button>
+                        <Button variant="primary">Add</Button>
                     </Modal.Footer>
                 </Modal>
             </>

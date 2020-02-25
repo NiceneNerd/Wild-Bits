@@ -34,6 +34,22 @@ class Api:
             }
         else:
             return {}
+
+    def create_sarc(self, be: bool, alignment: int) -> dict:
+        tmp_sarc = oead.SarcWriter(
+            oead.Endianness.Big if be else oead.Endianness.Little,
+            oead.SarcWriter.Mode.New if alignment == 4 else oead.SarcWriter.Mode.Legacy
+        )
+        self._open_sarc, tree = _sarc.open_sarc(
+            oead.Sarc(
+                tmp_sarc.write()[1]
+            )
+        )
+        return {
+            'sarc': tree,
+            'be': be,
+            'path': ''
+        }
         
     def save_sarc(self, path: str = '') -> dict:
         if not path:
@@ -103,7 +119,7 @@ def main():
     webview.start(
         debug=True,
         http_server=False,
-        gui='qt'
+        gui='gtk'
     )
 
 
