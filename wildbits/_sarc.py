@@ -129,6 +129,22 @@ def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
     return Sarc(new_sarc.write()[1])
 
 
+def add_file(root_sarc: Sarc, file: str, data: memoryview) -> Sarc:
+    if file.endswith('/'):
+        file = file[0:-1]
+    parent = get_parent_sarc(root_sarc, file)
+    filename = file.split('//')[-1]
+    new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
+    new_sarc.files[filename] = Bytes(data)
+    while root_sarc != parent:
+        _, child = new_sarc.write()
+        file = file[0:file.rindex('//')]
+        parent = get_parent_sarc(root_sarc, file)
+        new_sarc = SarcWriter.from_sarc(parent)
+        new_sarc.files[file] = child
+    return Sarc(new_sarc.write()[1])
+
+
 def _dict_merge(dct: dict, merge_dct: dict, overwrite_lists: bool = False):
     for k in merge_dct:
         if (k in dct and isinstance(dct[k], dict)

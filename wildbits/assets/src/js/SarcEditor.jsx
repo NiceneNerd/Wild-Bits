@@ -62,7 +62,9 @@ class SarcEditor extends React.Component {
             showAdd: false,
             addName: "",
             showNew: false,
-            showAdd: false
+            showAdd: false,
+            addFile: "",
+            addPath: ""
         };
         this.file_infos = {};
         this.open_sarc = this.open_sarc.bind(this);
@@ -71,6 +73,7 @@ class SarcEditor extends React.Component {
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
         this.delete_file = this.delete_file.bind(this);
+        this.browse_add_file = this.browse_add_file.bind(this);
     }
 
     render_node(file, children, path) {
@@ -204,6 +207,15 @@ class SarcEditor extends React.Component {
         );
     }
 
+    async browse_add_file() {
+        let file = await pywebview.api.browse();
+        if (file) {
+            this.setState({ addFile: file });
+        }
+    }
+
+    add_file() {}
+
     handleSelect(path) {
         if (!this.file_infos.hasOwnProperty(path)) {
             pywebview.api.get_file_info(path, this.state.be).then(res => {
@@ -219,7 +231,7 @@ class SarcEditor extends React.Component {
         return (
             <>
                 <Container fluid className="sarc">
-                    <Row style={{ paddingBottom: "0.25rem" }}>
+                    <Row className="toolbar">
                         <Col style={{ flexGrow: 0, minWidth: "fit-content" }}>
                             <ButtonToolbar>
                                 <ButtonGroup size="xs" className="mr-2">
@@ -357,7 +369,7 @@ class SarcEditor extends React.Component {
                             </div>
                         </Col>
                     </Row>
-                    <Row style={{ flexGrow: 1, minHeight: 0 }}>
+                    <Row className="main">
                         <Col className="tree">
                             {this.state.sarc ? (
                                 <>
@@ -373,7 +385,9 @@ class SarcEditor extends React.Component {
                                     </TreeView>
                                 </>
                             ) : (
-                                <p>No SARC open</p>
+                                <div className="nothing">
+                                    <span>No SARC open</span>
+                                </div>
                             )}
                         </Col>
                         <Col xs={4} className="file-actions">
@@ -564,13 +578,25 @@ class SarcEditor extends React.Component {
                                     File
                                 </Form.Label>
                                 <Col sm={10}>
-                                    <Form.Control>
+                                    <InputGroup>
+                                        <Form.Control
+                                            value={this.state.addFile}
+                                            onChange={e =>
+                                                this.setState({
+                                                    addFile:
+                                                        e.currentTarget.value
+                                                })
+                                            }
+                                        />
                                         <InputGroup.Append>
-                                            <Button variant="secondary">
+                                            <Button
+                                                variant="secondary"
+                                                onClick={this.browse_add_file}
+                                            >
                                                 Browse...
                                             </Button>
                                         </InputGroup.Append>
-                                    </Form.Control>
+                                    </InputGroup>
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row}>
@@ -586,7 +612,7 @@ class SarcEditor extends React.Component {
                     <Modal.Footer>
                         <Button
                             variant="secondary"
-                            onHide={() => this.setState({ showAdd: false })}
+                            onClick={() => this.setState({ showAdd: false })}
                         >
                             Close
                         </Button>

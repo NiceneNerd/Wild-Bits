@@ -16,13 +16,20 @@ class Api:
     _open_pio: oead.aamp.ParameterIO
     _open_msbt: dict
     
+    def browse(self) -> Union[str, None]:
+        result = self.window.create_file_dialog(webview.OPEN_DIALOG)
+        if result:
+            return result[0]
+        else:
+            return None
+    
     ###############
     # SARC Editor #
     ###############
     def open_sarc(self) -> dict:
-        result = self.window.create_file_dialog(webview.OPEN_DIALOG)
+        result = self.browse()
         if result:
-            file = Path(result[0])
+            file = Path(result)
             try:
                 self._open_sarc, tree = _sarc.open_sarc(file)
             except ValueError:
@@ -111,15 +118,25 @@ class Api:
         except (ValueError, KeyError) as e:
             return {'error': str(e)}
         return tree
+    
+    def add_sarc_file(self, file: str, sarc_path: str) -> dict:
+        try:
+            data = memoryview(Path(file).read_bytes())
+            self._open_sarc, tree = _sarc.open_sarc(
+                _sarc.add_file(self._open_sarc, sarc_path, data)
+            )
+        except (ValueError, KeyError, OSError, FileNotFoundError) as e:
+            return {'error': str(e)}
+        return tree
 
 
 def main():
     api = Api()
     api.window = webview.create_window('Wild Bits', url=str(EXEC_DIR / 'assets' / 'index.html'), js_api=api)
     webview.start(
-        debug=True,
+        debug=False,
         http_server=False,
-        gui='gtk'
+        gui='qt'
     )
 
 
