@@ -6,12 +6,13 @@ import oead
 from oead.yaz0 import decompress
 from rstb import ResourceSizeTable
 import webview
-from . import EXEC_DIR, _sarc
+from . import EXEC_DIR, _sarc, _rstb
 
 class Api:
     window: webview.Window
     _open_sarc: oead.Sarc
     _open_rstb: ResourceSizeTable
+    _open_rstb_be: bool
     _open_byml: Union[oead.byml.Hash, oead.byml.Array]
     _open_pio: oead.aamp.ParameterIO
     _open_msbt: dict
@@ -28,19 +29,18 @@ class Api:
     ###############
     def open_sarc(self) -> dict:
         result = self.browse()
-        if result:
-            file = Path(result)
-            try:
-                self._open_sarc, tree = _sarc.open_sarc(file)
-            except ValueError:
-                return {}
-            return {
-                'path': str(file.resolve()),
-                'sarc': tree,
-                'be': self._open_sarc.get_endianness() == oead.Endianness.Big
-            }
-        else:
+        if not result:
             return {}
+        file = Path(result)
+        try:
+            self._open_sarc, tree = _sarc.open_sarc(file)
+        except ValueError:
+            return {}
+        return {
+            'path': str(file.resolve()),
+            'sarc': tree,
+            'be': self._open_sarc.get_endianness() == oead.Endianness.Big
+        }
 
     def create_sarc(self, be: bool, alignment: int) -> dict:
         tmp_sarc = oead.SarcWriter(
@@ -153,6 +153,26 @@ class Api:
         except (FileNotFoundError, OSError) as e:
             return {'error': str(e)}
         return {}
+
+    ###############
+    # RSTB Editor #
+    ###############
+    def open_rstb(self):
+        result = self.browse()
+        if not result:
+            return {}
+        file = Path(result)
+        try:
+            self._open_rstb, self._open_rstb_be = _rstb.open_rstb(file)
+        except (ValueError, IndexError) as e:
+            return {'error': str(e)}
+        return {
+            'path': str(file.resolve()),
+            'rstb': {
+                _rstb.get_name_from_hash(crc): size for crc, size in self._open_rstb.crc32_map.items()
+            },
+            'be': self._open_rstb_be
+        }
 
 
 def main():

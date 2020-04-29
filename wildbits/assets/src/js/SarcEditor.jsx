@@ -166,7 +166,6 @@ class SarcEditor extends React.Component {
     }
 
     add_file() {
-        console.log("hello");
         const file = this.state.addFile.split(/[\\\/]/).slice(-1)[0];
         pywebview.api
             .add_sarc_file(this.state.addFile, this.state.addPath)
