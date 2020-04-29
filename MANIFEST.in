@@ -5,4 +5,4 @@ recursive-include wildbits/mergers *
 include wildbits/assets/index.html
 recursive-include wildbits/assets/css *.css
 recursive-include wildbits/assets/icon *
-recursive-include wildbits/assets/dist *.js
+recursive-include wildbits/assets/scripts *.js
