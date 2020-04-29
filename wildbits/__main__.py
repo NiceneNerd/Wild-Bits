@@ -141,6 +141,19 @@ class Api:
             return {'error': str(e)}
         return tree
 
+    def extract_sarc(self):
+        result = self.window.create_file_dialog(webview.FOLDER_DIALOG)
+        if not result:
+            return {}
+        try:
+            output = Path(result[0])
+            for file in self._open_sarc.get_files():
+                (output / file.name).parent.mkdir(parents=True, exist_ok=True)
+                (output / file.name).write_bytes(file.data)
+        except (FileNotFoundError, OSError) as e:
+            return {'error': str(e)}
+        return {}
+
 
 def main():
     api = Api()

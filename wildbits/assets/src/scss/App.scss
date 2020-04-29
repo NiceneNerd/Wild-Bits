@@ -5,7 +5,7 @@ $modal-content-content: $body-color;
 $theme-colors: (
     "primary": #1584cd,
     "danger": #e53935,
-    "warning": #ffb300,
+    "warning": #ffd600,
     "info": #00897b,
     "success": #43a047
 );
@@ -112,6 +112,19 @@ body {
     .tree {
         height: 100%;
         overflow-y: auto;
+        scrollbar-color: tint($body-bg, 10%) tint($body-bg, 25%);
+
+        &::-webkit-scrollbar {
+            width: 1rem;
+        }
+
+        &::-webkit-scrollbar-track {
+            background-color: tint($body-bg, 10%);
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background-color: tint($body-bg, 25%);
+        }
 
         .MuiTreeItem-root:focus > .MuiTreeItem-content {
             background-color: map-get($map: $theme-colors, $key: "primary");

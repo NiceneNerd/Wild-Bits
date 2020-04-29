@@ -72,6 +72,7 @@ class SarcEditor extends React.Component {
         this.save_sarc = this.save_sarc.bind(this);
         this.add_file = this.add_file.bind(this);
         this.update_folder = this.update_folder.bind(this);
+        this.extract_sarc = this.extract_sarc.bind(this);
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
         this.delete_file = this.delete_file.bind(this);
@@ -196,6 +197,16 @@ class SarcEditor extends React.Component {
             this.setState({ sarc: res, modified: true }, () =>
                 this.props.showToast("SARC updated")
             );
+        });
+    }
+
+    extract_sarc() {
+        pywebview.api.extract_sarc().then(res => {
+            if (res.error) {
+                this.props.onError(res.error);
+                return;
+            }
+            this.props.showToast('All files in SARC extracted')
         });
     }
 
@@ -357,6 +368,7 @@ class SarcEditor extends React.Component {
                                         <Button
                                             disabled={!this.state.sarc}
                                             variant="success"
+                                            onClick={this.extract_sarc}
                                         >
                                             <Unarchive />
                                         </Button>
@@ -448,6 +460,7 @@ class SarcEditor extends React.Component {
                                     </Col>
                                     <Col>
                                         <Button
+                                            variant="warning"
                                             disabled={
                                                 !this.state.selected ||
                                                 !this.state.selected.file.includes(
@@ -463,6 +476,7 @@ class SarcEditor extends React.Component {
                                 <Row>
                                     <Col>
                                         <Button
+                                            variant="info"
                                             disabled={
                                                 !this.state.selected ||
                                                 !this.state.selected.file.includes(
@@ -480,6 +494,7 @@ class SarcEditor extends React.Component {
                                     </Col>
                                     <Col>
                                         <Button
+                                            variant="danger"
                                             disabled={
                                                 !this.state.selected ||
                                                 !this.state.selected.file.includes(

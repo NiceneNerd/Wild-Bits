@@ -13,7 +13,7 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict):
         sarc = Sarc(data)
     def get_sarc_tree(parent_sarc: Sarc) -> {}:
         tree = {}
-        for file in parent_sarc.get_files():
+        for file in sorted(parent_sarc.get_files(), key=lambda f: f.name):
             path_parts = Path(file.name).parts
             magic = file.data[0:4]
             nest_tree = {}
