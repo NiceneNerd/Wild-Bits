@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Union
+from zlib import crc32
 
-import botw
+import botw, botw.rstb, botw.extensions
 import oead
 from oead.yaz0 import decompress
 from rstb import ResourceSizeTable
@@ -157,7 +158,7 @@ class Api:
     ###############
     # RSTB Editor #
     ###############
-    def open_rstb(self):
+    def open_rstb(self) -> dict:
         result = self.browse()
         if not result:
             return {}
@@ -173,6 +174,56 @@ class Api:
             },
             'be': self._open_rstb_be
         }
+
+    def browse_file_size(self) -> dict:
+        result = self.browse()
+        if not result:
+            return {}
+        try:
+            size, guess = _rstb.get_rstb_value(Path(result), self._open_rstb_be)
+        except ValueError as e:
+            return {'error': str(e)}
+        return {
+            'size': size,
+            'guess': guess
+        }
+
+    def set_entry(self, path: str, size: int) -> dict:
+        try:
+            self._open_rstb.set_size(path, size)
+            if isinstance(_rstb.get_name_from_hash(crc32(path.encode('utf8'))), int):
+                _rstb.add_custom(path)
+        except Exception as e:
+            return {'error': str(e)}
+        return {}
+
+    def delete_entry(self, path: str):
+        self._open_rstb.delete_entry(path)
+
+    def save_rstb(self, path: str = '') -> dict:
+        if not path:
+            result = self.window.create_file_dialog(webview.SAVE_DIALOG)
+            if result:
+                path = result[0]
+            else:
+                return {'error': 'Cancelled'}
+        path = Path(path)
+        try:
+            _rstb.write_rstb(self._open_rstb, path, self._open_rstb_be)
+        except Exception as e:
+            return {'error': str(e)}
+        return {'path': str(path)}
+
+    def export_rstb(self) -> dict:
+        result = self.window.create_file_dialog(webview.SAVE_DIALOG, file_types=tuple(['JSON files (*.json)']))
+        if not result:
+            return {}
+        try:
+            _rstb.rstb_to_json(self._open_rstb, Path(result[0]))
+        except Exception as e:
+            return {'error': str(e)}
+        return {}
+
 
 
 def main():

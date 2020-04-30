@@ -1,7 +1,7 @@
 import React from "react";
 import { Button, Modal, Tabs, Tab, Toast } from "react-bootstrap";
 import SarcEditor from "./SarcEditor.jsx";
-import RstbEditor from './RstbEditor.jsx';
+import RstbEditor from "./RstbEditor.jsx";
 
 class App extends React.Component {
     constructor(props) {
@@ -47,7 +47,8 @@ class App extends React.Component {
                         <RstbEditor
                             onError={this.showError}
                             showToast={this.showToast}
-                            showConfirm={this.showConfirm} />
+                            showConfirm={this.showConfirm}
+                        />
                     </Tab>
                     <Tab eventKey="yaml" title="YAML">
                         <p></p>
@@ -55,8 +56,7 @@ class App extends React.Component {
                 </Tabs>
                 <Modal
                     show={this.state.showError}
-                    onHide={() => this.setState({ showError: false })}
-                >
+                    onHide={() => this.setState({ showError: false })}>
                     <Modal.Header closeButton>
                         <Modal.Title>Error</Modal.Title>
                     </Modal.Header>
@@ -64,27 +64,29 @@ class App extends React.Component {
                     <Modal.Footer>
                         <Button
                             variant="primary"
-                            onClick={() => this.setState({ showError: false })}
-                        >
+                            onClick={() => this.setState({ showError: false })}>
                             Close
                         </Button>
                     </Modal.Footer>
                 </Modal>
                 <Modal
                     show={this.state.showConfirm}
-                    onHide={() => this.setState({ showConfirm: false })}
-                >
+                    onHide={() => this.setState({ showConfirm: false })}>
                     <Modal.Header closeButton>
                         <Modal.Title>Confirm</Modal.Title>
                     </Modal.Header>
-                    <Modal.Body>{this.state.confirmMsg}</Modal.Body>
+                    <Modal.Body>
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: this.state.confirmMsg
+                            }}></div>
+                    </Modal.Body>
                     <Modal.Footer>
                         <Button
                             variant="secondary"
                             onClick={() =>
                                 this.setState({ showConfirm: false })
-                            }
-                        >
+                            }>
                             Close
                         </Button>
                         <Button
@@ -92,8 +94,7 @@ class App extends React.Component {
                             onClick={() => {
                                 this.state.confirmCallback();
                                 this.setState({ showConfirm: false });
-                            }}
-                        >
+                            }}>
                             OK
                         </Button>
                     </Modal.Footer>
@@ -108,8 +109,7 @@ class App extends React.Component {
                         bottom: "0.25rem",
                         left: "50%",
                         transform: "translateX(-50%)"
-                    }}
-                >
+                    }}>
                     <Toast.Body>{this.state.toastMsg}</Toast.Body>
                 </Toast>
             </>

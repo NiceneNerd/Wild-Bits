@@ -7,7 +7,8 @@ $theme-colors: (
     "danger": #e53935,
     "warning": #ffd600,
     "info": #00897b,
-    "success": #43a047
+    "success": #43a047,
+    "dark": darken($body-bg, 2.5%)
 );
 $toast-background-color: map-get(
     $map: $theme-colors,
@@ -155,6 +156,19 @@ body {
     .main {
         display: flex;
         flex-direction: column;
-        padding: 8px;
+        padding: 0.5rem 0 0 0;
+        margin: 0 7px 0 -8px;
+
+        .rstb-list {
+            margin-right: 0;
+
+            .row {
+                margin: 0;
+    
+                &:nth-child(even) {
+                    background-color: map-get($map: $theme-colors, $key: "dark");
+                }
+            }
+        }
     }
 }

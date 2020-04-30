@@ -124,8 +124,7 @@ class SarcEditor extends React.Component {
                     type != "folder"
                         ? () => this.handleSelect(full_path)
                         : () => this.setState({ selected: null })
-                }
-            >
+                }>
                 {Object.keys(children).map(file =>
                     this.render_node(file, children[file], path.slice(0))
                 )}
@@ -205,7 +204,7 @@ class SarcEditor extends React.Component {
                 this.props.onError(res.error);
                 return;
             }
-            this.props.showToast('All files in SARC extracted')
+            this.props.showToast("All files in SARC extracted");
         });
     }
 
@@ -282,8 +281,7 @@ class SarcEditor extends React.Component {
                                 <ButtonGroup size="xs" className="mr-2">
                                     <OverlayTrigger
                                         placement="bottom"
-                                        overlay={<Tooltip>New</Tooltip>}
-                                    >
+                                        overlay={<Tooltip>New</Tooltip>}>
                                         <Button>
                                             <Create
                                                 onClick={() =>
@@ -297,32 +295,29 @@ class SarcEditor extends React.Component {
                                     <OverlayTrigger
                                         placement="bottom"
                                         overlay={
-                                            <Tooltip>Open a SARC...</Tooltip>
-                                        }
-                                    >
+                                            <Tooltip>Open a SARC…</Tooltip>
+                                        }>
                                         <Button onClick={this.open_sarc}>
                                             <FolderOpen />
                                         </Button>
                                     </OverlayTrigger>
                                     <OverlayTrigger
                                         placement="bottom"
-                                        overlay={<Tooltip>Save</Tooltip>}
-                                    >
+                                        overlay={<Tooltip>Save</Tooltip>}>
                                         <Button
+                                            disabled={!this.state.sarc}
                                             onClick={() =>
                                                 this.save_sarc(this.state.path)
-                                            }
-                                        >
+                                            }>
                                             <Save />
                                         </Button>
                                     </OverlayTrigger>
                                     <OverlayTrigger
                                         placement="bottom"
-                                        overlay={<Tooltip>Save As...</Tooltip>}
-                                    >
+                                        overlay={<Tooltip>Save As…</Tooltip>}>
                                         <Button
-                                            onClick={() => this.save_sarc("")}
-                                        >
+                                            disabled={!this.state.sarc}
+                                            onClick={() => this.save_sarc("")}>
                                             <SaveAlt />
                                         </Button>
                                     </OverlayTrigger>
@@ -330,15 +325,13 @@ class SarcEditor extends React.Component {
                                 <ButtonGroup size="xs">
                                     <OverlayTrigger
                                         placement="bottom"
-                                        overlay={<Tooltip>Add File...</Tooltip>}
-                                    >
+                                        overlay={<Tooltip>Add File…</Tooltip>}>
                                         <Button
                                             disabled={!this.state.sarc}
                                             variant="success"
                                             onClick={() =>
                                                 this.setState({ showAdd: true })
-                                            }
-                                        >
+                                            }>
                                             <Add />
                                         </Button>
                                     </OverlayTrigger>
@@ -346,29 +339,25 @@ class SarcEditor extends React.Component {
                                         placement="bottom"
                                         overlay={
                                             <Tooltip>
-                                                Update from Folder...
+                                                Update from Folder…
                                             </Tooltip>
-                                        }
-                                    >
+                                        }>
                                         <Button
                                             disabled={!this.state.sarc}
                                             variant="success"
-                                            onClick={this.update_folder}
-                                        >
+                                            onClick={this.update_folder}>
                                             <FileCopy />
                                         </Button>
                                     </OverlayTrigger>
                                     <OverlayTrigger
                                         placement="bottom"
                                         overlay={
-                                            <Tooltip>Extract SARC...</Tooltip>
-                                        }
-                                    >
+                                            <Tooltip>Extract SARC…</Tooltip>
+                                        }>
                                         <Button
                                             disabled={!this.state.sarc}
                                             variant="success"
-                                            onClick={this.extract_sarc}
-                                        >
+                                            onClick={this.extract_sarc}>
                                             <Unarchive />
                                         </Button>
                                     </OverlayTrigger>
@@ -380,15 +369,24 @@ class SarcEditor extends React.Component {
                                 style={{
                                     verticalAlign: "middle",
                                     textAlign: "right"
-                                }}
-                            >
-                                <Badge variant="secondary">
-                                    {this.state.path
-                                        ? this.state.path
-                                        : this.state.sarc
-                                        ? "Unsaved SARC"
-                                        : ""}
-                                </Badge>{" "}
+                                }}>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={
+                                        <Tooltip>{this.state.path}</Tooltip> ||
+                                        null
+                                    }>
+                                    <Badge variant="secondary">
+                                        {this.state.path
+                                            ? this.state.path
+                                                  .replace("\\", "/")
+                                                  .split("/")
+                                                  .splice(-1)[0]
+                                            : this.state.sarc
+                                            ? "Unsaved SARC"
+                                            : ""}
+                                    </Badge>
+                                </OverlayTrigger>{" "}
                                 {this.state.sarc && (
                                     <>
                                         {this.state.be ? (
@@ -398,8 +396,7 @@ class SarcEditor extends React.Component {
                                                     <Tooltip>
                                                         Big Endian
                                                     </Tooltip>
-                                                }
-                                            >
+                                                }>
                                                 <Badge variant="info">BE</Badge>
                                             </OverlayTrigger>
                                         ) : (
@@ -409,8 +406,7 @@ class SarcEditor extends React.Component {
                                                     <Tooltip>
                                                         Little Endian
                                                     </Tooltip>
-                                                }
-                                            >
+                                                }>
                                                 <Badge variant="info">LE</Badge>
                                             </OverlayTrigger>
                                         )}
@@ -452,8 +448,7 @@ class SarcEditor extends React.Component {
                                             disabled={
                                                 !this.state.selected ||
                                                 !this.state.selected.is_yaml
-                                            }
-                                        >
+                                            }>
                                             Edit
                                         </Button>
                                     </Col>
@@ -466,8 +461,7 @@ class SarcEditor extends React.Component {
                                                     "."
                                                 )
                                             }
-                                            onClick={this.extract_file}
-                                        >
+                                            onClick={this.extract_file}>
                                             Extract
                                         </Button>
                                     </Col>
@@ -486,8 +480,7 @@ class SarcEditor extends React.Component {
                                                 this.setState({
                                                     showRename: true
                                                 })
-                                            }
-                                        >
+                                            }>
                                             Rename
                                         </Button>
                                     </Col>
@@ -500,8 +493,7 @@ class SarcEditor extends React.Component {
                                                     "."
                                                 )
                                             }
-                                            onClick={this.delete_file}
-                                        >
+                                            onClick={this.delete_file}>
                                             Delete
                                         </Button>
                                     </Col>
@@ -535,8 +527,7 @@ class SarcEditor extends React.Component {
                 </Container>
                 <Modal
                     show={this.state.showRename}
-                    onHide={() => this.setState({ showRename: false })}
-                >
+                    onHide={() => this.setState({ showRename: false })}>
                     <Modal.Header closeButton>
                         <Modal.Title>Rename File</Modal.Title>
                     </Modal.Header>
@@ -561,8 +552,9 @@ class SarcEditor extends React.Component {
                     <Modal.Footer>
                         <Button
                             variant="secondary"
-                            onClick={() => this.setState({ showRename: false })}
-                        >
+                            onClick={() =>
+                                this.setState({ showRename: false })
+                            }>
                             Close
                         </Button>
                         <Button variant="primary" onClick={this.rename_file}>
@@ -572,8 +564,7 @@ class SarcEditor extends React.Component {
                 </Modal>
                 <Modal
                     show={this.state.showNew}
-                    onHide={() => this.setState({ showNew: false })}
-                >
+                    onHide={() => this.setState({ showNew: false })}>
                     <Modal.Header closeButton>
                         <Modal.Title>New SARC</Modal.Title>
                     </Modal.Header>
@@ -600,8 +591,7 @@ class SarcEditor extends React.Component {
                     <Modal.Footer>
                         <Button
                             variant="secondary"
-                            onClick={() => this.setState({ showNew: false })}
-                        >
+                            onClick={() => this.setState({ showNew: false })}>
                             Close
                         </Button>
                         <Button variant="primary" onClick={this.create_sarc}>
@@ -611,8 +601,7 @@ class SarcEditor extends React.Component {
                 </Modal>
                 <Modal
                     show={this.state.showAdd}
-                    onHide={() => this.setState({ showAdd: false })}
-                >
+                    onHide={() => this.setState({ showAdd: false })}>
                     <Modal.Header>
                         <Modal.Title>Add File to SARC</Modal.Title>
                     </Modal.Header>
@@ -648,9 +637,8 @@ class SarcEditor extends React.Component {
                                         <InputGroup.Append>
                                             <Button
                                                 variant="secondary"
-                                                onClick={this.browse_add_file}
-                                            >
-                                                Browse...
+                                                onClick={this.browse_add_file}>
+                                                Browse…
                                             </Button>
                                         </InputGroup.Append>
                                     </InputGroup>
@@ -677,8 +665,7 @@ class SarcEditor extends React.Component {
                     <Modal.Footer>
                         <Button
                             variant="secondary"
-                            onClick={() => this.setState({ showAdd: false })}
-                        >
+                            onClick={() => this.setState({ showAdd: false })}>
                             Close
                         </Button>
                         <Button variant="primary" onClick={this.add_file}>
