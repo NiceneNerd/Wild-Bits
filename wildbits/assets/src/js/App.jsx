@@ -2,6 +2,7 @@ import React from "react";
 import { Button, Modal, Tabs, Tab, Toast } from "react-bootstrap";
 import SarcEditor from "./SarcEditor.jsx";
 import RstbEditor from "./RstbEditor.jsx";
+import YamlEditor from "./YamlEditor.jsx";
 
 class App extends React.Component {
     constructor(props) {
@@ -51,7 +52,11 @@ class App extends React.Component {
                         />
                     </Tab>
                     <Tab eventKey="yaml" title="YAML">
-                        <p></p>
+                        <YamlEditor
+                            onError={this.showError}
+                            showToast={this.showToast}
+                            showConfirm={this.showConfirm}
+                        />
                     </Tab>
                 </Tabs>
                 <Modal

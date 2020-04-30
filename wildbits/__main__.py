@@ -224,6 +224,9 @@ class Api:
             return {'error': str(e)}
         return {}
 
+    ###############
+    # YAML Editor #
+    ###############
 
 
 def main():
