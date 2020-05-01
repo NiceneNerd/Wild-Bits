@@ -7,16 +7,14 @@ import oead
 from oead.yaz0 import decompress
 from rstb import ResourceSizeTable
 import webview
-from . import EXEC_DIR, _sarc, _rstb
+from . import EXEC_DIR, _sarc, _rstb, _yaml
 
 class Api:
     window: webview.Window
     _open_sarc: oead.Sarc
     _open_rstb: ResourceSizeTable
     _open_rstb_be: bool
-    _open_byml: Union[oead.byml.Hash, oead.byml.Array]
-    _open_pio: oead.aamp.ParameterIO
-    _open_msbt: dict
+    _open_yaml: Union[oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, _yaml.Msbt]
     
     def browse(self) -> Union[str, None]:
         result = self.window.create_file_dialog(webview.OPEN_DIALOG)
@@ -227,6 +225,22 @@ class Api:
     ###############
     # YAML Editor #
     ###############
+    def open_yaml(self) -> dict:
+        result = self.browse()
+        if not result:
+            return {}
+        file = Path(result)
+        data = file.read_bytes()
+        if data[0:4] == b'Yaz0':
+            data = oead.yaz0.decompress(data)
+        opened = _yaml.open_yaml(data)
+        self._open_yaml = opened['obj']
+        return {
+            'path': str(file),
+            'yaml': opened['yaml'],
+            'be': opened['be'],
+            'type': opened['type']
+        }
 
 
 def main():

@@ -13,12 +13,13 @@ import {
 import { FolderOpen } from "@material-ui/icons";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-yaml";
-import "ace-builds/src-noconflict/theme-clouds_midnight";
+import "ace-builds/src-noconflict/ext-language_tools";
+import "ace-builds/src-noconflict/theme-pastel_on_dark";
 
 const yamlTypes = {
     AAMP: "aamp",
     BYML: "byml",
-    MSYT: "msyt"
+    MSBT: "msbt"
 };
 
 class YamlEditor extends React.Component {
@@ -28,18 +29,36 @@ class YamlEditor extends React.Component {
             yaml: "",
             type: null,
             be: false,
+            path: "",
             modified: false
         };
+        this.open_yaml = this.open_yaml.bind(this);
+    }
+
+    open_yaml() {
+        pywebview.api.open_yaml().then(res => {
+            if (res.error) {
+                this.props.onError(res.error);
+                return;
+            }
+            this.setState({
+                ...res,
+                modified: false
+            });
+        });
     }
 
     render() {
         return (
-            <Container fluid className="yaml">
+            <Container
+                fluid
+                className="yaml d-flex flex-column"
+                style={{ height: "100%" }}>
                 <Row className="toolbar">
                     <Col style={{ flexGrow: 0, minWidth: "fit-content" }}>
                         <ButtonToolbar>
                             <ButtonGroup size="xs">
-                                <Button>
+                                <Button onClick={this.open_yaml}>
                                     <FolderOpen />
                                 </Button>
                             </ButtonGroup>
@@ -68,7 +87,7 @@ class YamlEditor extends React.Component {
                                 </Badge>
                             </OverlayTrigger>{" "}
                             {this.state.yaml &&
-                                [yamlTypes.BYML, yamlTypes.MSYT].includes(
+                                [yamlTypes.BYML, yamlTypes.MSBT].includes(
                                     this.state.type
                                 ) && (
                                     <>
@@ -102,8 +121,20 @@ class YamlEditor extends React.Component {
                         </div>
                     </Col>
                 </Row>
-                <Row>
-                    <AceEditor mode="yaml" theme="clouds_midnight" />
+                <Row
+                    className="d-flex flex-column flex-grow-1"
+                    style={{ height: "100%" }}>
+                    <AceEditor
+                        className="flex-grow-1"
+                        mode="yaml"
+                        theme="pastel_on_dark"
+                        style={{ width: "calc(100% - 7px)" }}
+                        fontSize={14}
+                        showPrintMargin={false}
+                        enableLiveAutocompletion={true}
+                        value={this.state.yaml}
+                        onChange={yaml => this.setState({ yaml })}
+                    />
                 </Row>
             </Container>
         );
