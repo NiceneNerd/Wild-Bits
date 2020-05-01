@@ -10,8 +10,20 @@ import {
     Tooltip,
     OverlayTrigger
 } from "react-bootstrap";
-import { FolderOpen } from "@material-ui/icons";
+import {
+    Assignment,
+    FolderOpen,
+    Save,
+    SaveAlt,
+    Search,
+    FindReplace,
+    Undo,
+    Redo,
+    FileCopy,
+    ControlCamera
+} from "@material-ui/icons";
 import AceEditor from "react-ace";
+import "ace-builds/src-min-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/mode-yaml";
 import "ace-builds/src-noconflict/ext-language_tools";
 import "ace-builds/src-noconflict/theme-pastel_on_dark";
@@ -33,6 +45,8 @@ class YamlEditor extends React.Component {
             modified: false
         };
         this.open_yaml = this.open_yaml.bind(this);
+        this.save_yaml = this.save_yaml.bind(this);
+        this.aceRef = React.createRef();
     }
 
     open_yaml() {
@@ -48,6 +62,18 @@ class YamlEditor extends React.Component {
         });
     }
 
+    save_yaml(path) {
+        pywebview.api
+            .save_yaml(this.state.yaml, this.state.type, this.state.be, path)
+            .then(res => {
+                if (res.error) {
+                    this.props.onError(res.error);
+                    return;
+                }
+                this.props.showToast("File saved");
+            });
+    }
+
     render() {
         return (
             <Container
@@ -57,10 +83,138 @@ class YamlEditor extends React.Component {
                 <Row className="toolbar">
                     <Col style={{ flexGrow: 0, minWidth: "fit-content" }}>
                         <ButtonToolbar>
+                            <ButtonGroup size="xs" className="mr-2">
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Open File…</Tooltip>}>
+                                    <Button onClick={this.open_yaml}>
+                                        <FolderOpen />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Save</Tooltip>}>
+                                    <Button
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.save_yaml(this.state.path)
+                                        }>
+                                        <Save />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Save As…</Tooltip>}>
+                                    <Button
+                                        disabled={!this.state.yaml}
+                                        onClick={() => this.save_yaml("")}>
+                                        <SaveAlt />
+                                    </Button>
+                                </OverlayTrigger>
+                            </ButtonGroup>
+                            <ButtonGroup size="xs" className="mr-2">
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Cut</Tooltip>}>
+                                    <Button
+                                        variant="success"
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.aceRef.current.editor.execCommand(
+                                                "cut"
+                                            )
+                                        }>
+                                        <ControlCamera />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Copy</Tooltip>}>
+                                    <Button
+                                        variant="success"
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.aceRef.current.editor.execCommand(
+                                                "copy"
+                                            )
+                                        }>
+                                        <FileCopy />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Paste</Tooltip>}>
+                                    <Button
+                                        variant="success"
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.aceRef.current.editor.execCommand(
+                                                "paste"
+                                            )
+                                        }>
+                                        <Assignment />
+                                    </Button>
+                                </OverlayTrigger>
+                            </ButtonGroup>
                             <ButtonGroup size="xs">
-                                <Button onClick={this.open_yaml}>
-                                    <FolderOpen />
-                                </Button>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Undo</Tooltip>}>
+                                    <Button
+                                        variant="secondary"
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.aceRef.current.editor.execCommand(
+                                                "undo"
+                                            )
+                                        }>
+                                        <Undo />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Redo</Tooltip>}>
+                                    <Button
+                                        variant="secondary"
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.aceRef.current.editor.execCommand(
+                                                "redo"
+                                            )
+                                        }>
+                                        <Redo />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={<Tooltip>Find</Tooltip>}>
+                                    <Button
+                                        variant="secondary"
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.aceRef.current.editor.execCommand(
+                                                "find"
+                                            )
+                                        }>
+                                        <Search />
+                                    </Button>
+                                </OverlayTrigger>
+                                <OverlayTrigger
+                                    placement="bottom"
+                                    overlay={
+                                        <Tooltip>Find and Replace</Tooltip>
+                                    }>
+                                    <Button
+                                        variant="secondary"
+                                        disabled={!this.state.yaml}
+                                        onClick={() =>
+                                            this.aceRef.current.editor.execCommand(
+                                                "replace"
+                                            )
+                                        }>
+                                        <FindReplace />
+                                    </Button>
+                                </OverlayTrigger>
                             </ButtonGroup>
                         </ButtonToolbar>
                     </Col>
@@ -121,10 +275,9 @@ class YamlEditor extends React.Component {
                         </div>
                     </Col>
                 </Row>
-                <Row
-                    className="d-flex flex-column flex-grow-1"
-                    style={{ height: "100%" }}>
+                <Row className="d-flex flex-column flex-grow-1">
                     <AceEditor
+                        ref={this.aceRef}
                         className="flex-grow-1"
                         mode="yaml"
                         theme="pastel_on_dark"

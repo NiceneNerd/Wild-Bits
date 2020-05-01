@@ -200,7 +200,10 @@ class Api:
 
     def save_rstb(self, path: str = '') -> dict:
         if not path:
-            result = self.window.create_file_dialog(webview.SAVE_DIALOG)
+            result = self.window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                file_types=tuple(['RSTB File (*.rsizetable; *.srsizetable)'])
+            )
             if result:
                 path = result[0]
             else:
@@ -230,10 +233,7 @@ class Api:
         if not result:
             return {}
         file = Path(result)
-        data = file.read_bytes()
-        if data[0:4] == b'Yaz0':
-            data = oead.yaz0.decompress(data)
-        opened = _yaml.open_yaml(data)
+        opened = _yaml.open_yaml(file)
         self._open_yaml = opened['obj']
         return {
             'path': str(file),
@@ -241,6 +241,31 @@ class Api:
             'be': opened['be'],
             'type': opened['type']
         }
+
+    def save_yaml(self, yaml: str, obj_type: str, be: bool, path: str) -> dict:
+        if not path:
+            result = self.window.create_file_dialog(webview.SAVE_DIALOG)
+            if result:
+                path = result[0]
+            else:
+                return {'error': 'Cancelled'}
+        try:
+            data = _yaml.save_yaml(yaml, obj_type, be)
+            if not path.startswith('SARC:'):
+                Path(path).write_bytes(data)
+            else:
+                edit_sarc = oead.SarcWriter.from_sarc(self._open_sarc)
+                edit_sarc.files[path[5:]] = data
+                self._open_sarc, tree = _sarc.open_sarc(
+                    oead.Sarc(edit_sarc.write()[1])
+                )
+                del edit_sarc
+                return {
+                    'sarc': tree
+                }
+        except Exception as err: # pylint: disable=broad-except
+            return {'error': str(err)}
+        return {}
 
 
 def main():
