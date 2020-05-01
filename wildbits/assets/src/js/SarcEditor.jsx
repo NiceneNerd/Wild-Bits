@@ -76,8 +76,12 @@ class SarcEditor extends React.Component {
         this.extract_file = this.extract_file.bind(this);
         this.rename_file = this.rename_file.bind(this);
         this.delete_file = this.delete_file.bind(this);
+        this.edit_yaml = this.edit_yaml.bind(this);
         this.browse_add_file = this.browse_add_file.bind(this);
+        this.yaml_modified = this.yaml_modified.bind(this);
     }
+
+    yaml_modified = () => this.setState({ modified: true });
 
     render_node(file, children, path) {
         let type;
@@ -251,6 +255,17 @@ class SarcEditor extends React.Component {
                     });
             }
         );
+    }
+
+    edit_yaml() {
+        pywebview.api.get_sarc_yaml(this.state.selected.path).then(res => {
+            if (res.error) {
+                this.props.onError(res.error);
+                return;
+            }
+            this.props.passFile(res);
+            this.props.showToast("File opened in YAML editor");
+        });
     }
 
     async browse_add_file() {
@@ -448,7 +463,8 @@ class SarcEditor extends React.Component {
                                             disabled={
                                                 !this.state.selected ||
                                                 !this.state.selected.is_yaml
-                                            }>
+                                            }
+                                            onClick={this.edit_yaml}>
                                             Edit
                                         </Button>
                                     </Col>

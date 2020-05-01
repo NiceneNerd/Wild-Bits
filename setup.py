@@ -32,8 +32,8 @@ setup(
     install_requires = [
         'botw-utils >= 0.2.0',
         'oead >= 0.11.2',
-        'pywebview >= 3.2, < 4.0',
         'rstb',
-        'xxhash'
+        'xxhash',
+        'pywebview >= 3.2, < 4.0',
     ]
 )

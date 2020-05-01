@@ -67,6 +67,42 @@ def open_yaml(file: Path) -> dict:
     }
 
 
+def get_sarc_yaml(file) -> dict:
+    yaml: str
+    be: bool
+    obj: Union[oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, Msbt]
+    obj_type: str
+    if file.name.endswith('.msbt'):
+        with NamedTemporaryFile(suffix='.msbt') as tmp:
+            tmp_file = Path(tmp.name)
+            tmp_file.write_bytes(file.data)
+            obj = Msbt(tmp_file)
+        be = obj.big_endian
+        yaml = obj.to_yaml()
+        obj_type = 'msbt'
+    else:
+        if file.data[0:4] == b'Yaz0':
+            data = oead.yaz0.decompress(file.data)
+        if file.data[0:4] == b'AAMP':
+            obj = oead.aamp.ParameterIO.from_binary(file.data)
+            be = False
+            yaml = obj.to_text()
+            obj_type = 'aamp'
+        elif file.data[0:2] in {b'BY', b'YB'}:
+            obj = oead.byml.from_binary(file.data)
+            be = file.data[0:2] == b'BY'
+            yaml = oead.byml.to_text(obj)
+            obj_type = 'byml'
+        else:
+            raise ValueError()
+    return {
+        'yaml': yaml,
+        'be': be,
+        'obj': obj,
+        'type': obj_type
+    }
+
+
 def save_yaml(yaml: str, obj_type: str, be: bool = False):
     if obj_type == 'aamp':
         return oead.aamp.ParameterIO.from_text(yaml).to_binary()

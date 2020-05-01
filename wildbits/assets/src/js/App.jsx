@@ -19,6 +19,10 @@ class App extends React.Component {
         this.showError = this.showError.bind(this);
         this.showToast = this.showToast.bind(this);
         this.showConfirm = this.showConfirm.bind(this);
+        this.yamlRef = React.createRef();
+        this.passFile = this.passFile.bind(this);
+        this.sarcRef = React.createRef();
+        this.passMod = this.passMod.bind(this);
     }
 
     showError(errorMsg) {
@@ -33,6 +37,9 @@ class App extends React.Component {
         this.setState({ showConfirm: true, confirmMsg, confirmCallback });
     }
 
+    passFile = res => this.yamlRef.current.open_sarc_yaml(res);
+    passMod = () => this.sarcRef.current.yaml_modified();
+
     render() {
         return (
             <>
@@ -42,6 +49,8 @@ class App extends React.Component {
                             onError={this.showError}
                             showToast={this.showToast}
                             showConfirm={this.showConfirm}
+                            passFile={this.passFile}
+                            ref={this.sarcRef}
                         />
                     </Tab>
                     <Tab eventKey="rstb" title="RSTB">
@@ -56,6 +65,8 @@ class App extends React.Component {
                             onError={this.showError}
                             showToast={this.showToast}
                             showConfirm={this.showConfirm}
+                            passMod={this.passMod}
+                            ref={this.yamlRef}
                         />
                     </Tab>
                 </Tabs>

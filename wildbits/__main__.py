@@ -153,6 +153,20 @@ class Api:
             return {'error': str(e)}
         return {}
 
+    def get_sarc_yaml(self, path: str) -> dict:
+        try:            
+            file = self._open_sarc.get_file(path)
+            opened = _yaml.get_sarc_yaml(file)
+            self._open_yaml = opened['obj']
+            return {
+                'path': 'SARC:' + path,
+                'yaml': opened['yaml'],
+                'be': opened['be'],
+                'type': opened['type']
+            }
+        except Exception as e:
+            return {'error': str(e)}
+
     ###############
     # RSTB Editor #
     ###############
@@ -260,9 +274,6 @@ class Api:
                     oead.Sarc(edit_sarc.write()[1])
                 )
                 del edit_sarc
-                return {
-                    'sarc': tree
-                }
         except Exception as err: # pylint: disable=broad-except
             return {'error': str(err)}
         return {}

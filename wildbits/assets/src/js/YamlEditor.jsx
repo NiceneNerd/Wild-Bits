@@ -46,8 +46,13 @@ class YamlEditor extends React.Component {
         };
         this.open_yaml = this.open_yaml.bind(this);
         this.save_yaml = this.save_yaml.bind(this);
+        this.open_sarc_yaml = this.open_sarc_yaml.bind(this);
         this.aceRef = React.createRef();
     }
+
+    open_sarc_yaml = res => {
+        this.setState({ ...res, modified: false });
+    };
 
     open_yaml() {
         pywebview.api.open_yaml().then(res => {
@@ -70,7 +75,12 @@ class YamlEditor extends React.Component {
                     this.props.onError(res.error);
                     return;
                 }
-                this.props.showToast("File saved");
+                this.props.showToast(
+                    "File saved" + path.startsWith("SARC:") ? " to SARC" : ""
+                );
+                if (path.startsWith("SARC:")) {
+                    this.props.passMod();
+                }
             });
     }
 
@@ -286,7 +296,9 @@ class YamlEditor extends React.Component {
                         showPrintMargin={false}
                         enableLiveAutocompletion={true}
                         value={this.state.yaml}
-                        onChange={yaml => this.setState({ yaml })}
+                        onChange={yaml =>
+                            this.setState({ yaml, modified: true })
+                        }
                     />
                 </Row>
             </Container>
