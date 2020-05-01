@@ -33,6 +33,7 @@ setup(
         'botw-utils >= 0.2.0',
         'oead >= 0.11.2',
         'rstb',
+        'pymsyt >= 0.1.5',
         'xxhash',
         'pywebview >= 3.2, < 4.0',
     ]
