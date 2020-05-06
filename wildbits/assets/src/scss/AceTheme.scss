@@ -1,0 +1,98 @@
+.ace-material .ace_gutter {
+    background: #2f3136;
+    color: #8f908a;
+}
+.ace-material .ace_print-margin {
+    width: 1px;
+    background: #555651;
+}
+.ace-material {
+    background-color: #2f3136;
+    color: #eeeeee;
+}
+.ace-material .ace_cursor {
+    color: #f8f8f0;
+}
+.ace-material .ace_marker-layer .ace_selection {
+    background: #49483e;
+}
+.ace-material.ace_multiselect .ace_selection.ace_start {
+    box-shadow: 0 0 3px 0px #2f3136;
+}
+.ace-material .ace_marker-layer .ace_step {
+    background: rgb(102, 82, 0);
+}
+.ace-material .ace_marker-layer .ace_bracket {
+    margin: -1px 0 0 -1px;
+    border: 1px solid #49483e;
+}
+.ace-material .ace_marker-layer .ace_active-line {
+    background: #202020;
+}
+.ace-material .ace_gutter-active-line {
+    background-color: #272727;
+}
+.ace-material .ace_marker-layer .ace_selected-word {
+    border: 1px solid #49483e;
+}
+.ace-material .ace_invisible {
+    color: #52524d;
+}
+.ace-material .ace_entity.ace_name.ace_tag,
+.ace-material .ace_keyword,
+.ace-material .ace_meta.ace_tag,
+.ace-material .ace_storage {
+    color: #ff1744;
+}
+.ace-material .ace_punctuation,
+.ace-material .ace_punctuation.ace_tag {
+    color: #fff;
+}
+.ace-material .ace_constant.ace_character,
+.ace-material .ace_constant.ace_language,
+.ace-material .ace_constant.ace_numeric,
+.ace-material .ace_constant.ace_other {
+    color: #ea80fc;
+}
+.ace-material .ace_invalid {
+    color: #f8f8f0;
+    background-color: #ff1744;
+}
+.ace-material .ace_invalid.ace_deprecated {
+    color: #f8f8f0;
+    background-color: #ea80fc;
+}
+.ace-material .ace_support.ace_constant,
+.ace-material .ace_support.ace_function {
+    color: #66d9ef;
+}
+.ace-material .ace_fold {
+    background-color: #a6e22e;
+    border-color: #f8f8f2;
+}
+.ace-material .ace_storage.ace_type,
+.ace-material .ace_support.ace_class,
+.ace-material .ace_support.ace_type {
+    font-style: italic;
+    color: #66d9ef;
+}
+.ace-material .ace_entity.ace_name.ace_function,
+.ace-material .ace_entity.ace_other,
+.ace-material .ace_entity.ace_other.ace_attribute-name,
+.ace-material .ace_variable {
+    color: #a6e22e;
+}
+.ace-material .ace_variable.ace_parameter {
+    font-style: italic;
+    color: #fd971f;
+}
+.ace-material .ace_string {
+    color: #00c853;
+}
+.ace-material .ace_comment {
+    color: #546e7a;
+}
+.ace-material .ace_indent-guide {
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWPQ0FD0ZXBzd/wPAAjVAoxeSgNeAAAAAElFTkSuQmCC)
+        right repeat-y;
+}

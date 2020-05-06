@@ -26,7 +26,7 @@ import AceEditor from "react-ace";
 import "ace-builds/src-min-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/mode-yaml";
 import "ace-builds/src-noconflict/ext-language_tools";
-import "ace-builds/src-noconflict/theme-pastel_on_dark";
+import "ace-builds/src-noconflict/theme-monokai";
 
 const yamlTypes = {
     AAMP: "aamp",
@@ -288,9 +288,9 @@ class YamlEditor extends React.Component {
                 <Row className="d-flex flex-column flex-grow-1">
                     <AceEditor
                         ref={this.aceRef}
-                        className="flex-grow-1"
+                        className="flex-grow-1 ace-material"
                         mode="yaml"
-                        theme="pastel_on_dark"
+                        theme="monokai"
                         style={{ width: "calc(100% - 7px)" }}
                         fontSize={14}
                         showPrintMargin={false}
