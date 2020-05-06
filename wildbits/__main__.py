@@ -1,4 +1,5 @@
 from pathlib import Path
+from platform import system
 from typing import Union
 from zlib import crc32
 
@@ -33,8 +34,8 @@ class Api:
         file = Path(result)
         try:
             self._open_sarc, tree = _sarc.open_sarc(file)
-        except ValueError:
-            return {}
+        except (ValueError, RuntimeError, oead.InvalidDataError):
+            return {'error': f'{file.name} is not a valid SARC file'}
         return {
             'path': str(file.resolve()),
             'sarc': tree,
@@ -247,7 +248,10 @@ class Api:
         if not result:
             return {}
         file = Path(result)
-        opened = _yaml.open_yaml(file)
+        try:
+            opened = _yaml.open_yaml(file)
+        except ValueError:
+            return {'error': f'{file.name} is not a valid AAMP, BYML, or MSBT file.'}
         self._open_yaml = opened['obj']
         return {
             'path': str(file),
@@ -281,11 +285,16 @@ class Api:
 
 def main():
     api = Api()
-    api.window = webview.create_window('Wild Bits', url=str(EXEC_DIR / 'assets' / 'index.html'), js_api=api)
+    api.window = webview.create_window('Wild Bits', url='assets/index.html', js_api=api)
+    gui: str = ''
+    if system() == 'Windows':
+        gui = 'cef'
+    elif system() == 'Linux':
+        gui = 'gtk'
     webview.start(
         debug=True,
         http_server=False,
-        gui='gtk'
+        gui=gui
     )
 
 

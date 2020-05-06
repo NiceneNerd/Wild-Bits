@@ -51,6 +51,7 @@ body,
         .toolbar {
             background-color: scale-color($color: $body-bg, $lightness: -25%);
             padding: 0.5rem 0;
+            flex-wrap: nowrap;
         }
 
         .main {
