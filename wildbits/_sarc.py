@@ -7,12 +7,15 @@ from oead import Sarc, SarcWriter, Endianness, Bytes
 from oead.yaz0 import decompress
 from . import util
 
-def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict):
+def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
     if isinstance(sarc, Path):
         data = util.unyaz_if_yazd(sarc.read_bytes())
         sarc = Sarc(data)
-    def get_sarc_tree(parent_sarc: Sarc) -> {}:
+
+    modified_files = set()
+    def get_sarc_tree(parent_sarc: Sarc) -> (dict, list):
         tree = {}
+        modded = set()
         for file in sorted(parent_sarc.get_files(), key=lambda f: f.name):
             path_parts = Path(file.name).parts
             magic = file.data[0:4]
@@ -23,7 +26,8 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict):
                 nest_sarc = Sarc(
                     file.data if not magic == b'Yaz0' else decompress(file.data)
                 )
-                nest_tree = get_sarc_tree(nest_sarc)
+                nest_tree, mods = get_sarc_tree(nest_sarc)
+                modded.update(mods)
                 del nest_sarc
             _dict_merge(
                 tree,
@@ -32,10 +36,15 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict):
                     reversed(path_parts), nest_tree
                 )
             )
-        return tree
+            if (util
+                .get_hashtable(parent_sarc.get_endianness() == Endianness.Big)
+                .is_file_modded(file.name, file.data)):
+                modded.add(file.name)
+        return tree, modded
     get_nested_file_data.cache_clear()
     get_nested_file_meta.cache_clear()
-    return sarc, get_sarc_tree(sarc)
+    tree, modded = get_sarc_tree(sarc)
+    return sarc, tree, list(modded)
 
 
 @lru_cache(10)

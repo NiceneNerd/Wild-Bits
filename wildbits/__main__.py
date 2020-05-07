@@ -33,12 +33,13 @@ class Api:
             return {}
         file = Path(result)
         try:
-            self._open_sarc, tree = _sarc.open_sarc(file)
+            self._open_sarc, tree, modded = _sarc.open_sarc(file)
         except (ValueError, RuntimeError, oead.InvalidDataError):
             return {'error': f'{file.name} is not a valid SARC file'}
         return {
             'path': str(file.resolve()),
             'sarc': tree,
+            'modded': modded,
             'be': self._open_sarc.get_endianness() == oead.Endianness.Big
         }
 
@@ -47,7 +48,7 @@ class Api:
             oead.Endianness.Big if be else oead.Endianness.Little,
             oead.SarcWriter.Mode.New if alignment == 4 else oead.SarcWriter.Mode.Legacy
         )
-        self._open_sarc, tree = _sarc.open_sarc(
+        self._open_sarc, tree, modded = _sarc.open_sarc(
             oead.Sarc(
                 tmp_sarc.write()[1]
             )
@@ -55,7 +56,8 @@ class Api:
         return {
             'sarc': tree,
             'be': be,
-            'path': ''
+            'path': '',
+            'modded': modded,
         }
         
     def save_sarc(self, path: str = '') -> dict:
@@ -103,43 +105,43 @@ class Api:
     
     def rename_sarc_file(self, file: str, new_name: str) -> dict:
         try:
-            self._open_sarc, tree = _sarc.open_sarc(
+            self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.rename_file(self._open_sarc, file, new_name)
             )
         except (ValueError, KeyError) as e:
             return {'error': str(e)}
-        return tree
+        return tree, modded
 
     def delete_sarc_file(self, file: str) -> dict:
         try:
-            self._open_sarc, tree = _sarc.open_sarc(
+            self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.delete_file(self._open_sarc, file)
             )
         except (ValueError, KeyError) as e:
             return {'error': str(e)}
-        return tree
+        return tree, modded
     
     def add_sarc_file(self, file: str, sarc_path: str) -> dict:
         try:
             data = memoryview(Path(file).read_bytes())
-            self._open_sarc, tree = _sarc.open_sarc(
+            self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.add_file(self._open_sarc, sarc_path, data)
             )
         except (AttributeError, ValueError, KeyError, OSError, TypeError, FileNotFoundError) as e:
             return {'error': str(e)}
-        return tree
+        return tree, modded
 
     def update_sarc_folder(self) -> dict:
         result = self.window.create_file_dialog(webview.FOLDER_DIALOG)
         if not result:
             return {}
         try:
-            self._open_sarc, tree = _sarc.open_sarc(
+            self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.update_from_folder(self._open_sarc, Path(result[0]))
             )
         except (FileNotFoundError, OSError, ValueError) as e:
             return {'error': str(e)}
-        return tree
+        return tree, modded
 
     def extract_sarc(self):
         result = self.window.create_file_dialog(webview.FOLDER_DIALOG)
@@ -274,10 +276,11 @@ class Api:
             else:
                 edit_sarc = oead.SarcWriter.from_sarc(self._open_sarc)
                 edit_sarc.files[path[5:]] = data
-                self._open_sarc, tree = _sarc.open_sarc(
+                self._open_sarc, tree, modded = _sarc.open_sarc(
                     oead.Sarc(edit_sarc.write()[1])
                 )
                 del edit_sarc
+                return {'modded': modded}
         except Exception as err: # pylint: disable=broad-except
             return {'error': str(err)}
         return {}

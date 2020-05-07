@@ -38,7 +38,7 @@ class App extends React.Component {
     }
 
     passFile = res => this.yamlRef.current.open_sarc_yaml(res);
-    passMod = () => this.sarcRef.current.yaml_modified();
+    passMod = file => this.sarcRef.current.yaml_modified(file);
 
     render() {
         return (

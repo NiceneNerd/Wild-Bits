@@ -79,7 +79,7 @@ class YamlEditor extends React.Component {
                     "File saved" + path.startsWith("SARC:") ? " to SARC" : ""
                 );
                 if (path.startsWith("SARC:")) {
-                    this.props.passMod();
+                    this.props.passMod(path.replace("SARC:", ""));
                 }
             });
     }

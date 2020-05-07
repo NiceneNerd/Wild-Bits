@@ -54,6 +54,7 @@ class SarcEditor extends React.Component {
         this.state = {
             sarc: null,
             modified: false,
+            modded: [],
             path: "",
             be: false,
             selected: null,
@@ -81,7 +82,11 @@ class SarcEditor extends React.Component {
         this.yaml_modified = this.yaml_modified.bind(this);
     }
 
-    yaml_modified = () => this.setState({ modified: true });
+    yaml_modified = file =>
+        this.setState({
+            modified: true,
+            modded: [...this.state.modded.filter(f => f != file), file]
+        });
 
     render_node(file, children, path) {
         let type;
@@ -104,6 +109,10 @@ class SarcEditor extends React.Component {
         return (
             <TreeItem
                 key={full_path}
+                className={
+                    this.state.modded.includes(full_path) &&
+                    "bg-warning text-dark"
+                }
                 nodeId={full_path}
                 expandIcon={
                     type == "folder" ? (
@@ -187,7 +196,8 @@ class SarcEditor extends React.Component {
                 }
                 this.setState(
                     {
-                        sarc: res,
+                        sarc: res[0],
+                        modded: res[1],
                         modified: true,
                         showAdd: false,
                         addFile: "",
@@ -204,8 +214,9 @@ class SarcEditor extends React.Component {
                 this.props.onError(res.error);
                 return;
             }
-            this.setState({ sarc: res, modified: true }, () =>
-                this.props.showToast("SARC updated")
+            this.setState(
+                { sarc: res[0], modded: res[1], modified: true },
+                () => this.props.showToast("SARC updated")
             );
         });
     }
@@ -239,8 +250,9 @@ class SarcEditor extends React.Component {
                     this.props.onError(res.error);
                     return;
                 }
-                this.setState({ sarc: res, modified: true }, () =>
-                    this.props.showToast(`Rename successful`)
+                this.setState(
+                    { sarc: res[0], modded: res[1], modified: true },
+                    () => this.props.showToast(`Rename successful`)
                 );
             });
     }
@@ -257,8 +269,9 @@ class SarcEditor extends React.Component {
                             this.props.onError(res.error);
                             return;
                         }
-                        this.setState({ sarc: res, modified: true }, () =>
-                            this.props.showToast(`Deleted ${file}`)
+                        this.setState(
+                            { sarc: res[0], modded: res[1], modified: true },
+                            () => this.props.showToast(`Deleted ${file}`)
                         );
                     });
             }
