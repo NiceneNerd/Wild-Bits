@@ -284,16 +284,15 @@ class Api:
 
 
 def main():
+    print(EXEC_DIR)
     api = Api()
-    api.window = webview.create_window('Wild Bits', url='assets/index.html', js_api=api)
+    api.window = webview.create_window('Wild Bits', url=f'{EXEC_DIR}/assets/index.html', js_api=api)
     gui: str = ''
     if system() == 'Windows':
         gui = 'cef'
-    elif system() == 'Linux':
-        gui = 'gtk'
     webview.start(
-        debug=True,
-        http_server=False,
+        debug=False,
+        http_server=True,
         gui=gui
     )
 

@@ -150,16 +150,18 @@ class SarcEditor extends React.Component {
     }
 
     open_sarc() {
-        pywebview.api.open_sarc().then(
-            res => {
+        pywebview.api
+            .open_sarc()
+            .then(res => {
+                console.log(res);
                 if (res.error) {
                     this.props.onError(res.error);
                     return;
                 }
-                res => this.setState({ ...res, modified: false });
-            },
-            () => (this.file_infos = {})
-        );
+                this.setState({ ...res, modified: false });
+                this.file_infos = {};
+            })
+            .catch(this.props.onError);
     }
 
     save_sarc(path) {
