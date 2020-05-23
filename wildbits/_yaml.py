@@ -11,9 +11,9 @@ class Msbt:
     _be: bool
 
     def __init__(self, file: Path):
-        with NamedTemporaryFile(mode='wb', suffix='.msyt') as tmp:
+        with NamedTemporaryFile(mode='wb', suffix='.msyt', delete=False) as tmp:
             pymsyt.export(file, tmp.name)
-            self._msyt = Path(tmp.name).read_text('utf-8')
+        self._msyt = Path(tmp.name).read_text('utf-8')
         if not self._msyt:
             raise ValueError('Unreadable MSBT file')
         with file.open('rb') as opened:
@@ -24,9 +24,10 @@ class Msbt:
         return self._msyt
 
     def to_msbt(self, output: Path):
-        with NamedTemporaryFile(mode='w', suffix='.msyt', encoding='utf-8') as tmp:
+        with NamedTemporaryFile(mode='w', suffix='.msyt', delete=False, encoding='utf-8') as tmp:
             tmp.write(self._msyt)
-            pymsyt.create(tmp.name, output, platform='wiiu' if self._be else 'switch')
+            tmp_name = tmp.name
+        pymsyt.create(tmp_name, output, platform='wiiu' if self._be else 'switch')
 
     @property
     def big_endian(self) -> bool:
@@ -73,10 +74,10 @@ def get_sarc_yaml(file) -> dict:
     obj: Union[oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, Msbt]
     obj_type: str
     if file.name.endswith('.msbt'):
-        with NamedTemporaryFile(suffix='.msbt') as tmp:
+        with NamedTemporaryFile(suffix='.msbt', delete=False) as tmp:
             tmp_file = Path(tmp.name)
-            tmp_file.write_bytes(file.data)
-            obj = Msbt(tmp_file)
+        tmp_file.write_bytes(file.data)
+        obj = Msbt(tmp_file)
         be = obj.big_endian
         yaml = obj.to_yaml()
         obj_type = 'msbt'

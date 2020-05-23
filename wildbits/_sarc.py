@@ -48,13 +48,18 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
 
 
 @lru_cache(10)
-def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
+def get_nested_file(sarc: Sarc, file: str):
     if file.endswith('/'):
         file = file[0:-1]
-    file_bytes = get_parent_sarc(sarc, file).get_file(
+    return get_parent_sarc(sarc, file).get_file(
         file.split('//')[-1]
-    ).data
-    return memoryview(file_bytes) if not unyaz else memoryview(
+    )     
+
+
+@lru_cache(10)
+def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
+    file_bytes = get_nested_file(sarc, file).data
+    return bytes(file_bytes) if not unyaz else bytes(
         util.unyaz_if_yazd(file_bytes)
     )
 
@@ -77,7 +82,7 @@ def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
         'size': len(data),
         'is_yaml': (
             Path(filename).suffix in
-            (extensions.AAMP_EXTS | extensions.BYML_EXTS)
+            (extensions.AAMP_EXTS | extensions.BYML_EXTS | {".msbt"})
         )
     }
     

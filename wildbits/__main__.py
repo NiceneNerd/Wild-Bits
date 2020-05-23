@@ -158,7 +158,7 @@ class Api:
 
     def get_sarc_yaml(self, path: str) -> dict:
         try:            
-            file = self._open_sarc.get_file(path)
+            file = _sarc.get_nested_file(self._open_sarc, path)
             opened = _yaml.get_sarc_yaml(file)
             self._open_yaml = opened['obj']
             return {
@@ -287,14 +287,17 @@ class Api:
 
 
 def main():
-    print(EXEC_DIR)
     api = Api()
     api.window = webview.create_window('Wild Bits', url=f'{EXEC_DIR}/assets/index.html', js_api=api)
     gui: str = ''
     if system() == 'Windows':
-        gui = 'cef'
+        try:
+            from cefpython3 import cefpython
+            gui = 'cef'
+        except ImportError:
+            pass
     webview.start(
-        debug=False,
+        debug=True,
         http_server=True,
         gui=gui
     )
