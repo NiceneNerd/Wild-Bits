@@ -33,9 +33,9 @@ def get_rstb_value(filename: str, data: ByteString, wiiu: bool) -> (int, bool):
     else:
         from botw import rstb, extensions
         if ext in {'.bfres', '.sbfres'}:
-            return rstb.guess_bfres_size(data.tobytes(), filename), True
+            return rstb.guess_bfres_size(bytes(data), filename), True
         elif ext in extensions.AAMP_EXTS:
-            return rstb.guess_aamp_size(data.tobytes(), ext), True
+            return rstb.guess_aamp_size(bytes(data), ext), True
         else:
             return 0, False
         
