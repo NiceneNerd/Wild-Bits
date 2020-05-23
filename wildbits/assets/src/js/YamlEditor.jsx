@@ -22,6 +22,7 @@ import {
     FileCopy,
     ControlCamera
 } from "@material-ui/icons";
+import CutIcon from "./CutIcon.jsx";
 import AceEditor from "react-ace";
 import "ace-builds/src-min-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/mode-yaml";
@@ -134,7 +135,7 @@ class YamlEditor extends React.Component {
                                                 "cut"
                                             )
                                         }>
-                                        <ControlCamera />
+                                        <CutIcon />
                                     </Button>
                                 </OverlayTrigger>
                                 <OverlayTrigger
@@ -242,7 +243,7 @@ class YamlEditor extends React.Component {
                                 <Badge variant="secondary">
                                     {this.state.path
                                         ? this.state.path
-                                              .replace("\\", "/")
+                                              .replace(/\\/g, "/")
                                               .split("/")
                                               .splice(-1)[0]
                                         : this.state.yaml

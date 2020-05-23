@@ -1,21 +1,3 @@
-$body-bg: #2f3136;
-$modal-content-bg: $body-bg;
-$body-color: #efefef;
-$modal-content-content: $body-color;
-$theme-colors: (
-    "primary": #1584cd,
-    "danger": #e53935,
-    "warning": #ffd600,
-    "info": #00897b,
-    "success": #43a047,
-    "dark": darken($body-bg, 2.5%)
-);
-$toast-background-color: map-get(
-    $map: $theme-colors,
-    $key: "success"
-);
-$toast-color: $body-color;
-
 .btn-group-xs > .btn,
 .btn-xs {
     padding: 0.125rem 0.25rem;
@@ -24,7 +6,9 @@ $toast-color: $body-color;
     border-radius: 0.2rem;
 }
 
+@import "Colors.scss";
 @import "../../node_modules/bootstrap/scss/bootstrap";
+@import "AceTheme.scss";
 
 html,
 body,
@@ -53,6 +37,10 @@ body,
             padding: 0.5rem 0;
             flex-wrap: nowrap;
             min-height: fit-content;
+
+            .btn-toolbar {
+                flex-wrap: nowrap;
+            }
         }
 
         .main {

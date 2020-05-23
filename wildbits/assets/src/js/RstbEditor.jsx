@@ -286,7 +286,7 @@ class RstbEditor extends React.Component {
                                     <Badge variant="secondary">
                                         {this.state.path
                                             ? this.state.path
-                                                  .replace("\\", "/")
+                                                  .replace(/\\/g, "/")
                                                   .split("/")
                                                   .splice(-1)[0]
                                             : this.state.rstb

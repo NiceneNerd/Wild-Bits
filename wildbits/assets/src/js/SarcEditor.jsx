@@ -312,7 +312,7 @@ class SarcEditor extends React.Component {
             <>
                 <Container fluid className="sarc">
                     <Row className="toolbar">
-                        <Col style={{ flexGrow: 0, minWidth: "fit-content" }}>
+                        <Col style={{ flexGrow: 0, minWidth: "auto" }}>
                             <ButtonToolbar>
                                 <ButtonGroup size="xs" className="mr-2">
                                     <OverlayTrigger
@@ -415,7 +415,7 @@ class SarcEditor extends React.Component {
                                     <Badge variant="secondary">
                                         {this.state.path
                                             ? this.state.path
-                                                  .replace("\\", "/")
+                                                  .replace(/\\/g, "/")
                                                   .split("/")
                                                   .splice(-1)[0]
                                             : this.state.sarc
