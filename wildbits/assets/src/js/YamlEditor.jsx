@@ -72,6 +72,7 @@ class YamlEditor extends React.Component {
         pywebview.api
             .save_yaml(this.state.yaml, this.state.type, this.state.be, path)
             .then(res => {
+                console.log(res);
                 if (res.error) {
                     this.props.onError(res.error);
                     return;
@@ -82,7 +83,9 @@ class YamlEditor extends React.Component {
                 if (path.startsWith("SARC:")) {
                     this.props.passMod(path.replace("SARC:", ""));
                 }
-            });
+            }).catch(
+            err => this.props.onError(err)
+        );
     }
 
     render() {

@@ -274,12 +274,9 @@ class Api:
             if not path.startswith('SARC:'):
                 Path(path).write_bytes(data)
             else:
-                edit_sarc = oead.SarcWriter.from_sarc(self._open_sarc)
-                edit_sarc.files[path[5:]] = data
                 self._open_sarc, tree, modded = _sarc.open_sarc(
-                    oead.Sarc(edit_sarc.write()[1])
+                    _sarc.update_file(self._open_sarc, path[5:], data)
                 )
-                del edit_sarc
                 return {'modded': modded}
         except Exception as err: # pylint: disable=broad-except
             return {'error': str(err)}
