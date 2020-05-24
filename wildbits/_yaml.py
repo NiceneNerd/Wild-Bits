@@ -110,8 +110,8 @@ def save_yaml(yaml: str, obj_type: str, be: bool = False):
     elif obj_type == 'byml':
         return oead.byml.to_binary(oead.byml.from_text(yaml), big_endian=be)
     elif obj_type == 'msbt':
-        with NamedTemporaryFile(mode='w', suffix='.msyt', encoding='utf-8') as tmp:
+        with NamedTemporaryFile(mode='w', suffix='.msyt', encoding='utf-8', delete=False) as tmp:
             Path(tmp.name).write_text(yaml, encoding='utf-8')
             tmp_file = Path(tmp.name).with_suffix('.msbt')
-            pymsyt.create(tmp.name, tmp_file, platform='wiiu' if be else 'switch')
+        pymsyt.create(tmp.name, tmp_file, platform='wiiu' if be else 'switch')
         return tmp_file.read_bytes()
