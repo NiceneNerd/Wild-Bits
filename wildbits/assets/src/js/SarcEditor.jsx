@@ -110,8 +110,9 @@ class SarcEditor extends React.Component {
             <TreeItem
                 key={full_path}
                 className={
-                    this.state.modded.includes(full_path) &&
-                    "bg-warning text-dark"
+                    this.state.modded.includes(full_path)
+                        ? "bg-warning text-dark"
+                        : ""
                 }
                 nodeId={full_path}
                 expandIcon={
