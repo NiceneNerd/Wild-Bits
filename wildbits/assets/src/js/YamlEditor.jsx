@@ -95,7 +95,7 @@ class YamlEditor extends React.Component {
                 className="yaml d-flex flex-column"
                 style={{ height: "100%" }}>
                 <Row className="toolbar">
-                    <Col style={{ flexGrow: 0, minWidth: "fit-content" }}>
+                    <Col style={{ flexGrow: 0, minWidth: "auto" }}>
                         <ButtonToolbar>
                             <ButtonGroup size="xs" className="mr-2">
                                 <OverlayTrigger

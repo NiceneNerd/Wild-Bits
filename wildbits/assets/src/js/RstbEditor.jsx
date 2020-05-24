@@ -210,7 +210,7 @@ class RstbEditor extends React.Component {
             <>
                 <Container fluid className="rstb">
                     <Row className="toolbar">
-                        <Col style={{ flexGrow: 0, minWidth: "fit-content" }}>
+                        <Col style={{ flexGrow: 0, minWidth: "auto" }}>
                             <ButtonToolbar>
                                 <ButtonGroup size="xs" className="mr-2">
                                     <OverlayTrigger
