@@ -275,7 +275,7 @@ class Api:
                 Path(path).write_bytes(data)
             else:
                 self._open_sarc, tree, modded = _sarc.open_sarc(
-                    _sarc.update_file(self._open_sarc, path[5:], data)
+                    _sarc.add_file(self._open_sarc, path, data)
                 )
                 return {'modded': modded}
         except Exception as err: # pylint: disable=broad-except

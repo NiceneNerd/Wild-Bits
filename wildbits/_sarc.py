@@ -38,7 +38,7 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
             )
             if (util
                 .get_hashtable(parent_sarc.get_endianness() == Endianness.Big)
-                .is_file_modded(file.name, file.data)):
+                .is_file_modded(file.name, bytes(file.data))):
                 modded.add(file.name)
         return tree, modded
     get_nested_file_data.cache_clear()
@@ -91,35 +91,22 @@ def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
 def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
     if file.endswith('/'):
         file = file[0:-1]
-    nests = file.split('//')
-    sarcs: List[Sarc] = [
-        root_sarc
-    ]
+    nests = file.replace("SARC:", "").split('//')
+    parent = root_sarc
     i = 0
     while i < len(nests) - 1:
-        nf = sarcs[i - 1].get_file(nests[i])
-        sarc_bytes = util.unyaz_if_yazd(
-            nf.data
-        )
-        sarcs.append(Sarc(sarc_bytes))
+        try:
+            nf = parent.get_file(nests[i])
+            sarc_bytes = util.unyaz_if_yazd(
+                nf.data
+            )
+        except AttributeError:
+            raise FileNotFoundError(f"Could not find file {nests[i]} in {nests[i - 1]}")
+        ns = Sarc(sarc_bytes)
+        del parent
+        parent = ns
         i += 1
-    return sarcs[-1]
-
-
-def update_file(root_sarc: Sarc, file: str, data: bytes) -> Sarc:
-    if file.endswith('/'):
-        file = file[0:-1]
-    parent = get_parent_sarc(root_sarc, file)
-    filename = file.split('//')[-1]
-    new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
-    new_sarc.files[filename] = data
-    while root_sarc != parent:
-        _, child = new_sarc.write()
-        file = file[0:file.rindex('//')]
-        parent = get_parent_sarc(root_sarc, file)
-        new_sarc = SarcWriter.from_sarc(parent)
-        new_sarc.files[file] = child
-    return Sarc(new_sarc.write()[1])
+    return parent
 
 
 def delete_file(root_sarc: Sarc, file: str) -> Sarc:
@@ -162,6 +149,7 @@ def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
 def add_file(root_sarc: Sarc, file: str, data: memoryview) -> Sarc:
     if file.endswith('/'):
         file = file[0:-1]
+    file = file.replace("SARC:", "")
     parent = get_parent_sarc(root_sarc, file)
     filename = file.split('//')[-1]
     new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
