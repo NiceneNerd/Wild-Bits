@@ -5,7 +5,7 @@ from zlib import crc32
 
 import botw, botw.rstb, botw.extensions
 import oead
-from oead.yaz0 import decompress
+from oead.yaz0 import decompress, compress
 from rstb import ResourceSizeTable
 import webview
 from . import EXEC_DIR, _sarc, _rstb, _yaml
@@ -271,8 +271,11 @@ class Api:
                 return {'error': 'Cancelled'}
         try:
             data = _yaml.save_yaml(yaml, obj_type, be)
+            pathy_path = Path(path)
+            if pathy_path.suffix.startswith(".s"):
+                data = compress(data)
             if not path.startswith('SARC:'):
-                Path(path).write_bytes(data)
+                pathy_path.write_bytes(data)
             else:
                 self._open_sarc, tree, modded = _sarc.open_sarc(
                     _sarc.add_file(self._open_sarc, path, data)
