@@ -4,7 +4,7 @@ from typing import List, Mapping, Union
 
 from botw import extensions
 from oead import Sarc, SarcWriter, Endianness, Bytes
-from oead.yaz0 import decompress
+from oead.yaz0 import decompress, compress
 from . import util
 
 def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
@@ -121,7 +121,12 @@ def delete_file(root_sarc: Sarc, file: str) -> Sarc:
         file = file[0:file.rindex('//')]
         parent = get_parent_sarc(root_sarc, file)
         new_sarc = SarcWriter.from_sarc(parent)
-        new_sarc.files[file] = child
+        ext = file[file.rindex('.'):]
+        new_sarc.files[file] = (
+            child
+            if not (ext.startswith('.s') and ext != '.sarc')
+            else compress(child)
+        )
     return Sarc(new_sarc.write()[1])
 
 
@@ -142,7 +147,12 @@ def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
         file = file[0:file.rindex('//')]
         parent = get_parent_sarc(root_sarc, file)
         new_sarc = SarcWriter.from_sarc(parent)
-        new_sarc.files[file] = child
+        ext = file[file.rindex('.'):]
+        new_sarc.files[file] = (
+            child
+            if not (ext.startswith('.s') and ext != '.sarc')
+            else compress(child)
+        )
     return Sarc(new_sarc.write()[1])
 
 
@@ -159,7 +169,12 @@ def add_file(root_sarc: Sarc, file: str, data: memoryview) -> Sarc:
         file = file[0:file.rindex('//')]
         parent = get_parent_sarc(root_sarc, file)
         new_sarc = SarcWriter.from_sarc(parent)
-        new_sarc.files[file] = child
+        ext = file[file.rindex('.'):]
+        new_sarc.files[file] = (
+            child
+            if not (ext.startswith('.s') and ext != '.sarc')
+            else compress(child)
+        )
     return Sarc(new_sarc.write()[1])
 
 
