@@ -144,10 +144,10 @@ def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
     parent = get_parent_sarc(root_sarc, file)
     filename = file.split("//")[-1]
     new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
-    del new_sarc.files[filename]
-    new_sarc.files[str(Path(filename).parent / new_name)] = Bytes(
+    new_sarc.files[(Path(filename).parent / new_name).as_posix()] = Bytes(
         parent.get_file(filename).data
     )
+    del new_sarc.files[filename]
     while root_sarc != parent:
         _, child = new_sarc.write()
         file = file[0 : file.rindex("//")]
