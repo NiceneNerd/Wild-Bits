@@ -1,2 +1,2 @@
-VERSION = "1.0.0b9"
-USER_VERSION = VERSION.replace("b", " beta ").replace("a", " alpha ")
+VERSION = "1.0.0b10"
+USER_VERSION = VERSION.replace("a", " alpha ").replace("b", " beta ")
