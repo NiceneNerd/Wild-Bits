@@ -11,6 +11,7 @@ from oead.yaz0 import decompress, compress
 from rstb import ResourceSizeTable
 import webview
 from . import EXEC_DIR, _sarc, _rstb, _yaml
+from .__version__ import USER_VERSION
 
 
 class Api:
@@ -333,7 +334,7 @@ class Api:
 def main():
     api = Api()
     api.window = webview.create_window(
-        "Wild Bits", url=f"{EXEC_DIR}/assets/index.html", js_api=api
+        f"Wild Bits {USER_VERSION}", url=f"{EXEC_DIR}/assets/index.html", js_api=api
     )
     gui: str = ""
     if system() == "Windows":
