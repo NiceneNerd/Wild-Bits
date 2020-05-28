@@ -45,6 +45,8 @@ class RstbEditor extends React.Component {
             showEdit: false,
             editEntry: ""
         };
+        this.open = this.open.bind(this);
+        window.openRstb = this.open;
         this.open_rstb = this.open_rstb.bind(this);
         this.save_rstb = this.save_rstb.bind(this);
         this.render_rstb = this.render_rstb.bind(this);
@@ -104,17 +106,19 @@ class RstbEditor extends React.Component {
         });
     }
 
+    open(data) {
+        if (data.error) {
+            this.props.onError(data.error);
+            return;
+        }
+        const rstb_files = Object.keys(data.rstb).sort(file_sort);
+        this.setState({ ...data, rstb_files: [], modified: false }, () =>
+            this.setState({ rstb_files })
+        );
+    }
+
     open_rstb() {
-        pywebview.api.open_rstb().then(res => {
-            if (res.error) {
-                this.props.onError(res.error);
-                return;
-            }
-            const rstb_files = Object.keys(res.rstb).sort(file_sort);
-            this.setState({ ...res, rstb_files: [], modified: false }, () =>
-                this.setState({ rstb_files })
-            );
-        });
+        pywebview.api.open_rstb().then(this.open);
     }
 
     save_rstb(path) {

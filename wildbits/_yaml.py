@@ -81,7 +81,7 @@ def get_sarc_yaml(file) -> dict:
         obj_type = "msbt"
     else:
         if file.data[0:4] == b"Yaz0":
-            data = oead.yaz0.decompress(file.data)
+            file.data = oead.yaz0.decompress(file.data)
         if file.data[0:4] == b"AAMP":
             obj = oead.aamp.ParameterIO.from_binary(file.data)
             be = False

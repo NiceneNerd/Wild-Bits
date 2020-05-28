@@ -1,5 +1,7 @@
+from json import dumps
 from pathlib import Path
 from platform import system
+from sys import argv
 from typing import Union
 from zlib import crc32
 
@@ -23,18 +25,46 @@ class Api:
     def browse(self) -> Union[str, None]:
         result = self.window.create_file_dialog(webview.OPEN_DIALOG)
         if result:
-            return result[0]
+            return result if isinstance(result, str) else result[0]
         else:
             return None
+
+    def handle_file(self):
+        if len(argv) == 1:
+            return
+        try:
+            file = Path(argv[1])
+            assert file.exists()
+        except (ValueError, AssertionError, FileNotFoundError):
+            return
+        tab = ""
+        if file.suffix in botw.extensions.SARC_EXTS:
+            res = self.open_sarc_file(file)
+            self.window.evaluate_js(
+                f"window.openSarc({dumps(res, ensure_ascii=False)});"
+            )
+            tab = "sarc"
+        elif file.suffix in {".srsizetable", ".rsizetable"}:
+            res = self.open_rstb_file(file)
+            self.window.evaluate_js(
+                f"window.openRstb({dumps(res, ensure_ascii=False)});"
+            )
+            tab = "rstb"
+        elif file.suffix in (
+            botw.extensions.BYML_EXTS | botw.extensions.AAMP_EXTS | {".msbt"}
+        ):
+            res = self.open_yaml_file(file)
+            self.window.evaluate_js(
+                f"window.openYaml({dumps(res, ensure_ascii=False)});"
+            )
+            tab = "yaml"
+        if tab:
+            self.window.evaluate_js(f"window.setTab('{tab}')")
 
     ###############
     # SARC Editor #
     ###############
-    def open_sarc(self) -> dict:
-        result = self.browse()
-        if not result:
-            return {}
-        file = Path(result)
+    def open_sarc_file(self, file: Path):
         try:
             self._open_sarc, tree, modded = _sarc.open_sarc(file)
         except (ValueError, RuntimeError, oead.InvalidDataError):
@@ -45,6 +75,13 @@ class Api:
             "modded": modded,
             "be": self._open_sarc.get_endianness() == oead.Endianness.Big,
         }
+
+    def open_sarc(self) -> dict:
+        result = self.browse()
+        if not result:
+            return {}
+        file = Path(result)
+        return self.open_sarc_file(file)
 
     def create_sarc(self, be: bool, alignment: int) -> dict:
         tmp_sarc = oead.SarcWriter(
@@ -63,7 +100,7 @@ class Api:
         if not path:
             result = self.window.create_file_dialog(webview.SAVE_DIALOG)
             if result:
-                path = result[0]
+                path = result if isinstance(result, str) else result[0]
             else:
                 return {"error": "Cancelled"}
         path = Path(path)
@@ -83,7 +120,7 @@ class Api:
             webview.SAVE_DIALOG, save_filename=filename
         )
         if output:
-            out = Path(output[0])
+            out = Path(output if isinstance(output, str) else output[0])
             try:
                 out.write_bytes(
                     _sarc.get_nested_file_data(self._open_sarc, file, unyaz=False)
@@ -133,7 +170,9 @@ class Api:
             return {}
         try:
             self._open_sarc, tree, modded = _sarc.open_sarc(
-                _sarc.update_from_folder(self._open_sarc, Path(result[0]))
+                _sarc.update_from_folder(
+                    self._open_sarc, Path(result if isinstance(result) else result[0])
+                )
             )
         except (FileNotFoundError, OSError, ValueError) as e:
             return {"error": str(e)}
@@ -144,10 +183,11 @@ class Api:
         if not result:
             return {}
         try:
-            output = Path(result[0])
+            output = Path(result if isinstance(result, str) else result[0])
             for file in self._open_sarc.get_files():
-                (output / file.name).parent.mkdir(parents=True, exist_ok=True)
-                (output / file.name).write_bytes(file.data)
+                name = file.name if not file.name.startswith("/") else file.name[1:]
+                (output / name).parent.mkdir(parents=True, exist_ok=True)
+                (output / name).write_bytes(file.data)
         except (FileNotFoundError, OSError) as e:
             return {"error": str(e)}
         return {}
@@ -169,11 +209,7 @@ class Api:
     ###############
     # RSTB Editor #
     ###############
-    def open_rstb(self) -> dict:
-        result = self.browse()
-        if not result:
-            return {}
-        file = Path(result)
+    def open_rstb_file(self, file: Path) -> dict:
         try:
             self._open_rstb, self._open_rstb_be = _rstb.open_rstb(file)
         except (ValueError, IndexError) as e:
@@ -186,6 +222,13 @@ class Api:
             },
             "be": self._open_rstb_be,
         }
+
+    def open_rstb(self) -> dict:
+        result = self.browse()
+        if not result:
+            return {}
+        file = Path(result)
+        return self.open_rstb_file(file)
 
     def browse_file_size(self) -> dict:
         result = self.browse()
@@ -216,7 +259,7 @@ class Api:
                 file_types=tuple(["RSTB File (*.rsizetable; *.srsizetable)"]),
             )
             if result:
-                path = result[0]
+                path = result if isinstance(result, str) else result[0]
             else:
                 return {"error": "Cancelled"}
         path = Path(path)
@@ -233,7 +276,9 @@ class Api:
         if not result:
             return {}
         try:
-            _rstb.rstb_to_json(self._open_rstb, Path(result[0]))
+            _rstb.rstb_to_json(
+                self._open_rstb, Path(result if isinstance(result, str) else result[0])
+            )
         except Exception as e:
             return {"error": str(e)}
         return {}
@@ -241,11 +286,7 @@ class Api:
     ###############
     # YAML Editor #
     ###############
-    def open_yaml(self) -> dict:
-        result = self.browse()
-        if not result:
-            return {}
-        file = Path(result)
+    def open_yaml_file(self, file: Path) -> dict:
         try:
             opened = _yaml.open_yaml(file)
         except ValueError:
@@ -258,11 +299,18 @@ class Api:
             "type": opened["type"],
         }
 
+    def open_yaml(self) -> dict:
+        result = self.browse()
+        if not result:
+            return {}
+        file = Path(result)
+        return self.open_yaml_file(file)
+
     def save_yaml(self, yaml: str, obj_type: str, be: bool, path: str) -> dict:
         if not path:
             result = self.window.create_file_dialog(webview.SAVE_DIALOG)
             if result:
-                path = result[0]
+                path = result if isinstance(result, str) else result[0]
             else:
                 return {"error": "Cancelled"}
         try:
@@ -290,12 +338,23 @@ def main():
     gui: str = ""
     if system() == "Windows":
         try:
+            # fmt: off
             from cefpython3 import cefpython
-
+            del cefpython
             gui = "cef"
+            # fmt: on
         except ImportError:
             pass
-    webview.start(debug=True, http_server=True, gui=gui)
+    elif system() == "Linux":
+        try:
+            # fmt: off
+            from PyQt5 import QtWebEngine
+            del QtWebEngine
+            gui = "qt"
+            # fmt: on
+        except ImportError:
+            gui = "gtk"
+    webview.start(debug=True, http_server=gui == "", gui=gui, func=api.handle_file)
 
 
 if __name__ == "__main__":

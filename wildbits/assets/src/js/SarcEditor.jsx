@@ -68,6 +68,8 @@ class SarcEditor extends React.Component {
             addPath: ""
         };
         this.file_infos = {};
+        this.open = this.open.bind(this);
+        window.openSarc = this.open;
         this.open_sarc = this.open_sarc.bind(this);
         this.create_sarc = this.create_sarc.bind(this);
         this.save_sarc = this.save_sarc.bind(this);
@@ -159,19 +161,23 @@ class SarcEditor extends React.Component {
             );
     }
 
+    open(data) {
+        try {
+            if (data.error) {
+                this.props.onError(data.error);
+                return;
+            }
+            this.setState({ ...data, modified: false });
+            this.file_infos = {};
+        } catch (err) {
+            this.props.onError(err);
+        }
+    }
+
     open_sarc() {
         pywebview.api
             .open_sarc()
-            .then(res => {
-                console.log(res);
-                if (res.error) {
-                    this.props.onError(res.error);
-                    return;
-                }
-                this.setState({ ...res, modified: false });
-                this.file_infos = {};
-            })
-            .catch(this.props.onError);
+            .then(this.open);
     }
 
     save_sarc(path) {
@@ -286,7 +292,6 @@ class SarcEditor extends React.Component {
                 return;
             }
             this.props.passFile(res);
-            this.props.showToast("File opened in YAML editor");
         });
     }
 

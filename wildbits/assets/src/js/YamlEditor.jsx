@@ -45,6 +45,8 @@ class YamlEditor extends React.Component {
             path: "",
             modified: false
         };
+        this.open = this.open.bind(this);
+        window.openYaml = this.open;
         this.open_yaml = this.open_yaml.bind(this);
         this.save_yaml = this.save_yaml.bind(this);
         this.open_sarc_yaml = this.open_sarc_yaml.bind(this);
@@ -55,17 +57,19 @@ class YamlEditor extends React.Component {
         this.setState({ ...res, modified: false });
     };
 
-    open_yaml() {
-        pywebview.api.open_yaml().then(res => {
-            if (res.error) {
-                this.props.onError(res.error);
-                return;
-            }
-            this.setState({
-                ...res,
-                modified: false
-            });
+    open(data) {
+        if (data.error) {
+            this.props.onError(data.error);
+            return;
+        }
+        this.setState({
+            ...data,
+            modified: false
         });
+    }
+
+    open_yaml() {
+        pywebview.api.open_yaml().then(this.open);
     }
 
     save_yaml(path) {

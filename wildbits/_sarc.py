@@ -8,6 +8,13 @@ from oead.yaz0 import decompress, compress
 from . import util
 
 
+def fix_slash(func):
+    def fixed_func(*args, **kwargs):
+        return func(args[0], args[1].replace("\\/", "/"), *args[2:], **kwargs)
+
+    return fixed_func
+
+
 def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
     if isinstance(sarc, Path):
         data = util.unyaz_if_yazd(sarc.read_bytes())
@@ -37,7 +44,7 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
             )
             if util.get_hashtable(
                 parent_sarc.get_endianness() == Endianness.Big
-            ).is_file_modded(file.name, bytes(file.data)):
+            ).is_file_modded(file.name.replace(".s", "."), bytes(file.data)):
                 modded.add(file.name)
         return tree, modded
 
@@ -48,10 +55,12 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
 
 
 @lru_cache(10)
+@fix_slash
 def get_nested_file(sarc: Sarc, file: str):
     if file.endswith("/"):
         file = file[0:-1]
-    return get_parent_sarc(sarc, file).get_file(file.split("//")[-1])
+    parent = get_parent_sarc(sarc, file)
+    return parent.get_file(file.split("//")[-1])
 
 
 @lru_cache(10)
@@ -61,6 +70,7 @@ def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
 
 
 @lru_cache(32)
+@fix_slash
 def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
     if file.endswith("/"):
         file = file[0:-1]
@@ -71,7 +81,9 @@ def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
         "rstb": util.get_rstb_value(filename, data, wiiu),
         "modified": util.get_hashtable(wiiu).is_file_modded(
             file.split("//")[-1].replace(".s", "."), data
-        ),
+        )
+        if ".ssarc//" not in file
+        else False,
         "size": len(data),
         "is_yaml": (
             Path(filename).suffix
@@ -81,6 +93,7 @@ def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
 
 
 @lru_cache(8)
+@fix_slash
 def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
     if file.endswith("/"):
         file = file[0:-1]
@@ -100,6 +113,7 @@ def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
     return parent
 
 
+@fix_slash
 def delete_file(root_sarc: Sarc, file: str) -> Sarc:
     if file.endswith("/"):
         file = file[0:-1]
@@ -110,6 +124,8 @@ def delete_file(root_sarc: Sarc, file: str) -> Sarc:
     while root_sarc != parent:
         _, child = new_sarc.write()
         file = file[0 : file.rindex("//")]
+        if file.endswith("/"):
+            file = file[:-1]
         parent = get_parent_sarc(root_sarc, file)
         new_sarc = SarcWriter.from_sarc(parent)
         ext = file[file.rindex(".") :]
@@ -119,6 +135,7 @@ def delete_file(root_sarc: Sarc, file: str) -> Sarc:
     return Sarc(new_sarc.write()[1])
 
 
+@fix_slash
 def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
     if file.endswith("/"):
         file = file[0:-1]
@@ -134,6 +151,8 @@ def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
     while root_sarc != parent:
         _, child = new_sarc.write()
         file = file[0 : file.rindex("//")]
+        if file.endswith("/"):
+            file = file[:-1]
         parent = get_parent_sarc(root_sarc, file)
         new_sarc = SarcWriter.from_sarc(parent)
         ext = file[file.rindex(".") :]
@@ -143,6 +162,7 @@ def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
     return Sarc(new_sarc.write()[1])
 
 
+@fix_slash
 def add_file(root_sarc: Sarc, file: str, data: memoryview) -> Sarc:
     if file.endswith("/"):
         file = file[0:-1]
@@ -154,6 +174,8 @@ def add_file(root_sarc: Sarc, file: str, data: memoryview) -> Sarc:
     while root_sarc != parent:
         _, child = new_sarc.write()
         file = file[0 : file.rindex("//")]
+        if file.endswith("/"):
+            file = file[:-1]
         parent = get_parent_sarc(root_sarc, file)
         new_sarc = SarcWriter.from_sarc(parent)
         ext = file[file.rindex(".") :]

@@ -8,6 +8,7 @@ class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            openTab: "sarc",
             showError: false,
             errorMsg: "",
             showToast: false,
@@ -16,6 +17,8 @@ class App extends React.Component {
             confirmMsg: "",
             confirmCallback: () => null
         };
+        this.setTab = this.setTab.bind(this);
+        window.setTab = this.setTab;
         this.showError = this.showError.bind(this);
         this.showToast = this.showToast.bind(this);
         this.showConfirm = this.showConfirm.bind(this);
@@ -23,6 +26,10 @@ class App extends React.Component {
         this.passFile = this.passFile.bind(this);
         this.sarcRef = React.createRef();
         this.passMod = this.passMod.bind(this);
+    }
+
+    setTab(tab) {
+        this.setState({ openTab: tab });
     }
 
     showError(errorMsg) {
@@ -37,13 +44,16 @@ class App extends React.Component {
         this.setState({ showConfirm: true, confirmMsg, confirmCallback });
     }
 
-    passFile = res => this.yamlRef.current.open_sarc_yaml(res);
+    passFile = res => {
+        this.yamlRef.current.open_sarc_yaml(res);
+        this.setTab("yaml");
+    };
     passMod = file => this.sarcRef.current.yaml_modified(file);
 
     render() {
         return (
             <>
-                <Tabs defaultActiveKey="sarc">
+                <Tabs activeKey={this.state.openTab} onSelect={this.setTab}>
                     <Tab eventKey="sarc" title="SARC">
                         <SarcEditor
                             onError={this.showError}
