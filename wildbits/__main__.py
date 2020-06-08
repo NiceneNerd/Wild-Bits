@@ -355,7 +355,9 @@ def main():
             # fmt: on
         except ImportError:
             gui = "gtk"
-    webview.start(debug=True, http_server=gui == "", gui=gui, func=api.handle_file)
+    webview.start(
+        debug=True, http_server=gui == "", gui=gui, func=api.handle_file
+    )
 
 
 if __name__ == "__main__":
