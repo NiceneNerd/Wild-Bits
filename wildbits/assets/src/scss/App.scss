@@ -137,6 +137,10 @@ body {
         padding: 0.5rem 0 0 0;
         margin: 0 7px 0 -8px;
 
+        .col {
+            min-width: unset;
+        }
+
         .rstb-list {
             margin-right: 0;
 
