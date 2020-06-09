@@ -356,6 +356,10 @@ class RstbEditor extends React.Component {
                                         <FormControl
                                             placeholder="Filter RSTB entries"
                                             id="rstb-filter"
+                                            onKeyUp={event =>
+                                                event.keyCode == 13 &&
+                                                this.update_filter()
+                                            }
                                         />
                                         <InputGroup.Append>
                                             <Button
