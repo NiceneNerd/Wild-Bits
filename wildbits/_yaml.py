@@ -80,16 +80,15 @@ def get_sarc_yaml(file) -> dict:
         yaml = obj.to_yaml()
         obj_type = "msbt"
     else:
-        if file.data[0:4] == b"Yaz0":
-            file.data = oead.yaz0.decompress(file.data)
-        if file.data[0:4] == b"AAMP":
-            obj = oead.aamp.ParameterIO.from_binary(file.data)
+        data = file.data if file.data[0:4] != b"Yaz0" else oead.yaz0.decompress(file.data)
+        if data[0:4] == b"AAMP":
+            obj = oead.aamp.ParameterIO.from_binary(data)
             be = False
             yaml = obj.to_text()
             obj_type = "aamp"
-        elif file.data[0:2] in {b"BY", b"YB"}:
-            obj = oead.byml.from_binary(file.data)
-            be = file.data[0:2] == b"BY"
+        elif data[0:2] in {b"BY", b"YB"}:
+            obj = oead.byml.from_binary(data)
+            be = data[0:2] == b"BY"
             yaml = oead.byml.to_text(obj)
             obj_type = "byml"
         else:
