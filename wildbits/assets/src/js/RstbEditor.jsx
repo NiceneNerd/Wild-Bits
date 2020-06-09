@@ -19,12 +19,8 @@ import {
     Add,
     Edit,
     Delete,
-    Create,
-    FileCopy,
-    Folder,
     FolderOpen,
-    Archive,
-    Unarchive,
+    Search,
     Save,
     SaveAlt,
     OpenInNew
@@ -43,6 +39,7 @@ class RstbEditor extends React.Component {
             be: false,
             showAdd: false,
             showEdit: false,
+            showSearch: false,
             editEntry: ""
         };
         this.open = this.open.bind(this);
@@ -54,6 +51,7 @@ class RstbEditor extends React.Component {
         this.add_entry = this.add_entry.bind(this);
         this.edit_entry = this.edit_entry.bind(this);
         this.export_rstb = this.export_rstb.bind(this);
+        this.search = this.search.bind(this);
     }
 
     render_rstb({ index, style }) {
@@ -97,6 +95,31 @@ class RstbEditor extends React.Component {
         );
     }
 
+    search(query) {
+        this.setState({ showSearch: false }, () => {
+            pywebview.api.add_name(query).then(hash => {
+                const idx = this.state.rstb_files.indexOf(hash);
+                console.log(hash);
+                console.log(idx);
+                if (idx > -1) {
+                    this.state.rstb_files[idx] = query;
+                    this.state.rstb[query] = this.state.rstb[hash];
+                    delete this.state.rstb[hash];
+                }
+                this.setState(
+                    {
+                        rstb: this.state.rstb,
+                        rstb_files: this.state.rstb_files
+                    },
+                    () => {
+                        document.getElementById("rstb-filter").value = query;
+                        this.update_filter();
+                    }
+                );
+            });
+        });
+    }
+
     update_filter() {
         const filter = document.getElementById("rstb-filter").value;
         this.setState({
@@ -112,6 +135,7 @@ class RstbEditor extends React.Component {
             return;
         }
         const rstb_files = Object.keys(data.rstb).sort(file_sort);
+        window.files = rstb_files;
         this.setState({ ...data, rstb_files: [], modified: false }, () =>
             this.setState({ rstb_files })
         );
@@ -123,7 +147,7 @@ class RstbEditor extends React.Component {
 
     save_rstb(path) {
         pywebview.api.save_rstb(path).then(res => {
-            if (res.error && res.error != "Cancelled") {
+            if (res.error && res.error.msg != "Cancelled") {
                 this.props.onError(res.error);
                 return;
             }
@@ -262,6 +286,24 @@ class RstbEditor extends React.Component {
                                     </OverlayTrigger>
                                     <OverlayTrigger
                                         overlay={
+                                            <Tooltip>
+                                                Search for Unknown Entry…
+                                            </Tooltip>
+                                        }
+                                        placement="bottom">
+                                        <Button
+                                            variant="success"
+                                            disabled={!this.state.rstb}
+                                            onClick={() =>
+                                                this.setState({
+                                                    showSearch: true
+                                                })
+                                            }>
+                                            <Search />
+                                        </Button>
+                                    </OverlayTrigger>
+                                    <OverlayTrigger
+                                        overlay={
                                             <Tooltip>Export as JSON</Tooltip>
                                         }
                                         placement="bottom">
@@ -387,7 +429,64 @@ class RstbEditor extends React.Component {
                     onError={this.props.onError}
                     onSet={this.edit_entry}
                 />
+                <SearchModal
+                    show={this.state.showSearch}
+                    onClose={() => this.setState({ showSearch: false })}
+                    onSearch={this.search}
+                />
             </>
+        );
+    }
+}
+
+class SearchModal extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            query: ""
+        };
+    }
+    render() {
+        return (
+            <Modal show={this.props.show} onHide={this.props.onClose}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Search for RSTB Entry</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p>
+                        Enter the resource path of the file you want to search
+                        for.
+                    </p>
+                    <Form>
+                        <Form.Group as={Row}>
+                            <Form.Label column sm={2}>
+                                File
+                            </Form.Label>
+                            <Col sm={10}>
+                                <Form.Control
+                                    placeholder="Canonical path to file"
+                                    value={this.state.query}
+                                    onChange={e =>
+                                        this.setState({
+                                            query: e.currentTarget.value
+                                        })
+                                    }
+                                />
+                            </Col>
+                        </Form.Group>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={this.props.onClose}>
+                        Close
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={() => this.props.onSearch(this.state.query)}>
+                        OK
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         );
     }
 }

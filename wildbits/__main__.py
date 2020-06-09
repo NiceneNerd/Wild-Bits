@@ -2,6 +2,7 @@ from json import dumps
 from pathlib import Path
 from platform import system
 from sys import argv
+from traceback import format_exc
 from typing import Union
 from zlib import crc32
 
@@ -19,9 +20,7 @@ class Api:
     _open_sarc: oead.Sarc
     _open_rstb: ResourceSizeTable
     _open_rstb_be: bool
-    _open_yaml: Union[
-        oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, _yaml.Msbt
-    ]
+    _open_yaml: Union[oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, _yaml.Msbt]
 
     def browse(self) -> Union[str, None]:
         result = self.window.create_file_dialog(webview.OPEN_DIALOG)
@@ -41,23 +40,17 @@ class Api:
         tab = ""
         if file.suffix in botw.extensions.SARC_EXTS:
             res = self.open_sarc_file(file)
-            self.window.evaluate_js(
-                f"window.openSarc({dumps(res, ensure_ascii=False)});"
-            )
+            self.window.evaluate_js(f"window.openSarc({dumps(res, ensure_ascii=False)});")
             tab = "sarc"
         elif file.suffix in {".srsizetable", ".rsizetable"}:
             res = self.open_rstb_file(file)
-            self.window.evaluate_js(
-                f"window.openRstb({dumps(res, ensure_ascii=False)});"
-            )
+            self.window.evaluate_js(f"window.openRstb({dumps(res, ensure_ascii=False)});")
             tab = "rstb"
         elif file.suffix in (
             botw.extensions.BYML_EXTS | botw.extensions.AAMP_EXTS | {".msbt"}
         ):
             res = self.open_yaml_file(file)
-            self.window.evaluate_js(
-                f"window.openYaml({dumps(res, ensure_ascii=False)});"
-            )
+            self.window.evaluate_js(f"window.openYaml({dumps(res, ensure_ascii=False)});")
             tab = "yaml"
         if tab:
             self.window.evaluate_js(f"window.setTab('{tab}')")
@@ -69,7 +62,12 @@ class Api:
         try:
             self._open_sarc, tree, modded = _sarc.open_sarc(file)
         except (ValueError, RuntimeError, oead.InvalidDataError):
-            return {"error": f"{file.name} is not a valid SARC file"}
+            return {
+                "error": {
+                    "msg": f"{file.name} is not a valid SARC file",
+                    "traceback": format_exc(-5),
+                }
+            }
         return {
             "path": str(file.resolve()),
             "sarc": tree,
@@ -103,12 +101,12 @@ class Api:
             if result:
                 path = result if isinstance(result, str) else result[0]
             else:
-                return {"error": "Cancelled"}
+                return {"error": {"msg": "Cancelled", "traceback": ""}}
         path = Path(path)
         try:
             path.write_bytes(oead.SarcWriter.from_sarc(self._open_sarc).write()[1])
         except (ValueError, OSError) as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         else:
             return {}
 
@@ -128,7 +126,7 @@ class Api:
                 )
                 return {"success": True}
             except Exception as e:
-                return {"error": str(e)}
+                return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
 
     def rename_sarc_file(self, file: str, new_name: str) -> dict:
         try:
@@ -136,7 +134,7 @@ class Api:
                 _sarc.rename_file(self._open_sarc, file, new_name)
             )
         except (ValueError, KeyError) as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return tree, modded
 
     def delete_sarc_file(self, file: str) -> dict:
@@ -145,7 +143,7 @@ class Api:
                 _sarc.delete_file(self._open_sarc, file)
             )
         except (ValueError, KeyError) as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return tree, modded
 
     def add_sarc_file(self, file: str, sarc_path: str) -> dict:
@@ -162,7 +160,7 @@ class Api:
             TypeError,
             FileNotFoundError,
         ) as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return tree, modded
 
     def update_sarc_folder(self) -> dict:
@@ -176,7 +174,7 @@ class Api:
                 )
             )
         except (FileNotFoundError, OSError, ValueError) as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return tree, modded
 
     def extract_sarc(self):
@@ -190,7 +188,7 @@ class Api:
                 (output / name).parent.mkdir(parents=True, exist_ok=True)
                 (output / name).write_bytes(file.data)
         except (FileNotFoundError, OSError) as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return {}
 
     def get_sarc_yaml(self, path: str) -> dict:
@@ -205,7 +203,7 @@ class Api:
                 "type": opened["type"],
             }
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
 
     ###############
     # RSTB Editor #
@@ -214,7 +212,7 @@ class Api:
         try:
             self._open_rstb, self._open_rstb_be = _rstb.open_rstb(file)
         except (ValueError, IndexError) as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return {
             "path": str(file.resolve()),
             "rstb": {
@@ -238,8 +236,14 @@ class Api:
         try:
             size, guess = _rstb.get_rstb_value(Path(result), self._open_rstb_be)
         except ValueError as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return {"size": size, "guess": guess}
+
+    def add_name(self, name: str):
+        hashed = crc32(name.encode("utf8"))
+        if isinstance(_rstb.get_name_from_hash(hashed), int):
+            _rstb.add_custom(name)
+        return str(hashed)
 
     def set_entry(self, path: str, size: int) -> dict:
         try:
@@ -247,7 +251,7 @@ class Api:
             if isinstance(_rstb.get_name_from_hash(crc32(path.encode("utf8"))), int):
                 _rstb.add_custom(path)
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return {}
 
     def delete_entry(self, path: str):
@@ -262,12 +266,12 @@ class Api:
             if result:
                 path = result if isinstance(result, str) else result[0]
             else:
-                return {"error": "Cancelled"}
+                return {"error": {"msg": "Cancelled", "traceback": ""}}
         path = Path(path)
         try:
             _rstb.write_rstb(self._open_rstb, path, self._open_rstb_be)
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return {"path": str(path)}
 
     def export_rstb(self) -> dict:
@@ -281,7 +285,7 @@ class Api:
                 self._open_rstb, Path(result if isinstance(result, str) else result[0])
             )
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
         return {}
 
     ###############
@@ -291,7 +295,12 @@ class Api:
         try:
             opened = _yaml.open_yaml(file)
         except ValueError:
-            return {"error": f"{file.name} is not a valid AAMP, BYML, or MSBT file."}
+            return {
+                "error": {
+                    "msg": f"{file.name} is not a valid AAMP, BYML, or MSBT file.",
+                    "traceback": format_exc(-5),
+                }
+            }
         self._open_yaml = opened["obj"]
         return {
             "path": str(file),
@@ -313,7 +322,7 @@ class Api:
             if result:
                 path = result if isinstance(result, str) else result[0]
             else:
-                return {"error": "Cancelled"}
+                return {"error": {"msg": "Cancelled", "traceback": ""}}
         try:
             data = _yaml.save_yaml(yaml, obj_type, be)
             pathy_path = Path(path)
@@ -327,7 +336,7 @@ class Api:
                 )
                 return {"modded": modded}
         except Exception as err:  # pylint: disable=broad-except
-            return {"error": str(err)}
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return {}
 
 
@@ -355,9 +364,7 @@ def main():
             # fmt: on
         except ImportError:
             gui = "gtk"
-    webview.start(
-        debug=True, http_server=gui == "", gui=gui, func=api.handle_file
-    )
+    webview.start(debug=True, http_server=gui == "", gui=gui, func=api.handle_file)
 
 
 if __name__ == "__main__":

@@ -32,8 +32,9 @@ class App extends React.Component {
         this.setState({ openTab: tab });
     }
 
-    showError(errorMsg) {
-        this.setState({ showError: true, errorMsg });
+    showError(error) {
+        this.setState({ showError: true, errorMsg: error.msg });
+        console.error(error.traceback);
     }
 
     showToast(toastMsg) {
@@ -44,10 +45,8 @@ class App extends React.Component {
         this.setState({ showConfirm: true, confirmMsg, confirmCallback });
     }
 
-    passFile = res => {
-        this.yamlRef.current.open_sarc_yaml(res);
-        this.setTab("yaml");
-    };
+    passFile = res =>
+        this.yamlRef.current.open_sarc_yaml(res) && this.setTab("yaml");
     passMod = file => this.sarcRef.current.yaml_modified(file);
 
     render() {

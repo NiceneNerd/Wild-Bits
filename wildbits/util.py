@@ -23,7 +23,7 @@ def get_rstb_calc() -> SizeCalculator:
 
 @lru_cache(10)
 def get_rstb_value(filename: str, data: ByteString, wiiu: bool) -> (int, bool):
-    ext = Path(filename).suffix
+    ext = filename[filename.rindex("."):]
     value = get_rstb_calc().calculate_file_size_with_ext(data, wiiu, ext)
     if value and ext != ".bdmgparam":
         return value, False
