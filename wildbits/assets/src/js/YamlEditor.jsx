@@ -55,6 +55,7 @@ class YamlEditor extends React.Component {
 
     open_sarc_yaml = res => {
         this.setState({ ...res, modified: false });
+        this.aceRef.current.editor.execCommand("resize");
     };
 
     open(data) {

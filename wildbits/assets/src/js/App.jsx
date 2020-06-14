@@ -45,8 +45,10 @@ class App extends React.Component {
         this.setState({ showConfirm: true, confirmMsg, confirmCallback });
     }
 
-    passFile = res =>
-        this.yamlRef.current.open_sarc_yaml(res) && this.setTab("yaml");
+    passFile = res => {
+        this.yamlRef.current.open_sarc_yaml(res);
+        this.setTab("yaml");
+    };
     passMod = file => this.sarcRef.current.yaml_modified(file);
 
     render() {
