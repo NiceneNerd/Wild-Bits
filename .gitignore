@@ -10,6 +10,7 @@ error.log
 /dist
 /wildbits.egg-info
 /wildbits/data/master.srsizetable
+/wildbits/assets/scripts/bundle.js
 /wildbits/__pycache__
 /venv
 /work_dir

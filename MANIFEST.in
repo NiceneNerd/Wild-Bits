@@ -3,6 +3,7 @@ recursive-include wildbits/data *
 recursive-include wildbits/helpers *
 recursive-include wildbits/mergers *
 include wildbits/assets/index.html
+include wildbits/assets/scripts/bundle.js
 recursive-include wildbits/assets/css *.css
 recursive-include wildbits/assets/icon *
 recursive-include wildbits/assets/scripts *.js

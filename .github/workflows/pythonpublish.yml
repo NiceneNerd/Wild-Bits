@@ -12,11 +12,22 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
-        python-version: '3.x'
+        python-version: '3.7'
+    - name: Set up Node.js
+      uses: actions/setup-node@v1
+      env:
+          RUNNER_TEMP: /tmp
+      with:
+          node-version: "14.x"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install setuptools wheel twine
+    - name: Generate webpack bundle
+      working-directory: ./wildbits/assets
+      run: |
+          npm install
+          ./node_modules/.bin/webpack --mode production
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
