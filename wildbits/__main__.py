@@ -20,7 +20,9 @@ class Api:
     _open_sarc: oead.Sarc
     _open_rstb: ResourceSizeTable
     _open_rstb_be: bool
-    _open_yaml: Union[oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, _yaml.Msbt]
+    _open_yaml: Union[
+        oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, _yaml.Msbt
+    ]
 
     def browse(self) -> Union[str, None]:
         result = self.window.create_file_dialog(webview.OPEN_DIALOG)
@@ -40,17 +42,23 @@ class Api:
         tab = ""
         if file.suffix in botw.extensions.SARC_EXTS:
             res = self.open_sarc_file(file)
-            self.window.evaluate_js(f"window.openSarc({dumps(res, ensure_ascii=False)});")
+            self.window.evaluate_js(
+                f"window.openSarc({dumps(res, ensure_ascii=False)});"
+            )
             tab = "sarc"
         elif file.suffix in {".srsizetable", ".rsizetable"}:
             res = self.open_rstb_file(file)
-            self.window.evaluate_js(f"window.openRstb({dumps(res, ensure_ascii=False)});")
+            self.window.evaluate_js(
+                f"window.openRstb({dumps(res, ensure_ascii=False)});"
+            )
             tab = "rstb"
         elif file.suffix in (
             botw.extensions.BYML_EXTS | botw.extensions.AAMP_EXTS | {".msbt"}
         ):
             res = self.open_yaml_file(file)
-            self.window.evaluate_js(f"window.openYaml({dumps(res, ensure_ascii=False)});")
+            self.window.evaluate_js(
+                f"window.openYaml({dumps(res, ensure_ascii=False)});"
+            )
             tab = "yaml"
         if tab:
             self.window.evaluate_js(f"window.setTab('{tab}')")
