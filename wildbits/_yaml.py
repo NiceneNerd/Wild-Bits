@@ -1,5 +1,5 @@
+# pylint: disable=bad-continuation
 from pathlib import Path
-from re import sub
 from tempfile import NamedTemporaryFile
 from typing import Union
 
@@ -39,12 +39,12 @@ class Msbt:
 
 def open_yaml(file: Path) -> dict:
     yaml: str
-    be: bool
+    big_endian: bool
     obj: Union[oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, Msbt]
     obj_type: str
     if file.suffix == ".msbt":
         obj = Msbt(file)
-        be = obj.big_endian
+        big_endian = obj.big_endian
         yaml = obj.to_yaml()
         obj_type = "msbt"
     else:
@@ -53,22 +53,22 @@ def open_yaml(file: Path) -> dict:
             data = oead.yaz0.decompress(data)
         if data[0:4] == b"AAMP":
             obj = oead.aamp.ParameterIO.from_binary(data)
-            be = False
+            big_endian = False
             yaml = obj.to_text()
             obj_type = "aamp"
         elif data[0:2] in {b"BY", b"YB"}:
             obj = oead.byml.from_binary(data)
-            be = data[0:2] == b"BY"
+            big_endian = data[0:2] == b"BY"
             yaml = oead.byml.to_text(obj)
             obj_type = "byml"
         else:
             raise ValueError()
-    return {"yaml": yaml, "be": be, "obj": obj, "type": obj_type}
+    return {"yaml": yaml, "big_endian": big_endian, "obj": obj, "type": obj_type}
 
 
 def get_sarc_yaml(file) -> dict:
     yaml: str
-    be: bool
+    big_endian: bool
     obj: Union[oead.byml.Hash, oead.byml.Array, oead.aamp.ParameterIO, Msbt]
     obj_type: str
     if file.name.endswith(".msbt"):
@@ -76,36 +76,36 @@ def get_sarc_yaml(file) -> dict:
             tmp_file = Path(tmp.name)
         tmp_file.write_bytes(file.data)
         obj = Msbt(tmp_file)
-        be = obj.big_endian
+        big_endian = obj.big_endian
         yaml = obj.to_yaml()
         obj_type = "msbt"
     else:
         data = file.data if file.data[0:4] != b"Yaz0" else oead.yaz0.decompress(file.data)
         if data[0:4] == b"AAMP":
             obj = oead.aamp.ParameterIO.from_binary(data)
-            be = False
+            big_endian = False
             yaml = obj.to_text()
             obj_type = "aamp"
         elif data[0:2] in {b"BY", b"YB"}:
             obj = oead.byml.from_binary(data)
-            be = data[0:2] == b"BY"
+            big_endian = data[0:2] == b"BY"
             yaml = oead.byml.to_text(obj)
             obj_type = "byml"
         else:
             raise ValueError()
-    return {"yaml": yaml, "be": be, "obj": obj, "type": obj_type}
+    return {"yaml": yaml, "big_endian": big_endian, "obj": obj, "type": obj_type}
 
 
-def save_yaml(yaml: str, obj_type: str, be: bool = False):
+def save_yaml(yaml: str, obj_type: str, big_endian: bool = False):
     if obj_type == "aamp":
         return oead.aamp.ParameterIO.from_text(yaml).to_binary()
     elif obj_type == "byml":
-        return oead.byml.to_binary(oead.byml.from_text(yaml), big_endian=be)
+        return oead.byml.to_binary(oead.byml.from_text(yaml), big_endian=big_endian)
     elif obj_type == "msbt":
         with NamedTemporaryFile(
             mode="w", suffix=".msyt", encoding="utf-8", delete=False
         ) as tmp:
             Path(tmp.name).write_text(yaml, encoding="utf-8")
             tmp_file = Path(tmp.name).with_suffix(".msbt")
-        pymsyt.create(tmp.name, tmp_file, platform="wiiu" if be else "switch")
+        pymsyt.create(tmp.name, tmp_file, platform="wiiu" if big_endian else "switch")
         return tmp_file.read_bytes()

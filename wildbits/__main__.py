@@ -1,3 +1,4 @@
+# pylint: disable=bad-continuation
 from json import dumps
 from pathlib import Path
 from platform import system
@@ -6,16 +7,17 @@ from traceback import format_exc
 from typing import Union
 from zlib import crc32
 
-import botw, botw.rstb, botw.extensions
+import botw
 import oead
-from oead.yaz0 import decompress, compress
+from oead.yaz0 import compress # pylint: disable=import-error
 from rstb import ResourceSizeTable
 import webview
-from . import EXEC_DIR, _sarc, _rstb, _yaml
-from .__version__ import USER_VERSION
+from wildbits import EXEC_DIR, _sarc, _rstb, _yaml
+from wildbits.__version__ import USER_VERSION
 
 
 class Api:
+    # pylint: disable=broad-except
     window: webview.Window
     _open_sarc: oead.Sarc
     _open_rstb: ResourceSizeTable
@@ -80,7 +82,7 @@ class Api:
             "path": str(file.resolve()),
             "sarc": tree,
             "modded": modded,
-            "be": self._open_sarc.get_endianness() == oead.Endianness.Big,
+            "big_endian": self._open_sarc.get_endianness() == oead.Endianness.Big,
         }
 
     def open_sarc(self) -> dict:
@@ -90,15 +92,15 @@ class Api:
         file = Path(result)
         return self.open_sarc_file(file)
 
-    def create_sarc(self, be: bool, alignment: int) -> dict:
+    def create_sarc(self, big_endian: bool, alignment: int) -> dict:
         tmp_sarc = oead.SarcWriter(
-            oead.Endianness.Big if be else oead.Endianness.Little,
+            oead.Endianness.Big if big_endian else oead.Endianness.Little,
             oead.SarcWriter.Mode.New if alignment == 4 else oead.SarcWriter.Mode.Legacy,
         )
         self._open_sarc, tree, modded = _sarc.open_sarc(oead.Sarc(tmp_sarc.write()[1]))
         return {
             "sarc": tree,
-            "be": be,
+            "big_endian": big_endian,
             "path": "",
             "modded": modded,
         }
@@ -113,8 +115,8 @@ class Api:
         path = Path(path)
         try:
             path.write_bytes(oead.SarcWriter.from_sarc(self._open_sarc).write()[1])
-        except (ValueError, OSError) as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except (ValueError, OSError) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         else:
             return {}
 
@@ -133,16 +135,16 @@ class Api:
                     _sarc.get_nested_file_data(self._open_sarc, file, unyaz=False)
                 )
                 return {"success": True}
-            except Exception as e:
-                return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+            except Exception as err:
+                return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
 
     def rename_sarc_file(self, file: str, new_name: str) -> dict:
         try:
             self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.rename_file(self._open_sarc, file, new_name)
             )
-        except (ValueError, KeyError) as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except (ValueError, KeyError) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return tree, modded
 
     def delete_sarc_file(self, file: str) -> dict:
@@ -150,8 +152,8 @@ class Api:
             self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.delete_file(self._open_sarc, file)
             )
-        except (ValueError, KeyError) as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except (ValueError, KeyError) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return tree, modded
 
     def add_sarc_file(self, file: str, sarc_path: str) -> dict:
@@ -167,8 +169,8 @@ class Api:
             OSError,
             TypeError,
             FileNotFoundError,
-        ) as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        ) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return tree, modded
 
     def update_sarc_folder(self) -> dict:
@@ -181,8 +183,8 @@ class Api:
                     self._open_sarc, Path(result if isinstance(result) else result[0])
                 )
             )
-        except (FileNotFoundError, OSError, ValueError) as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except (FileNotFoundError, OSError, ValueError) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return tree, modded
 
     def extract_sarc(self):
@@ -195,8 +197,8 @@ class Api:
                 name = file.name if not file.name.startswith("/") else file.name[1:]
                 (output / name).parent.mkdir(parents=True, exist_ok=True)
                 (output / name).write_bytes(file.data)
-        except (FileNotFoundError, OSError) as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except (FileNotFoundError, OSError) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return {}
 
     def get_sarc_yaml(self, path: str) -> dict:
@@ -207,11 +209,11 @@ class Api:
             return {
                 "path": "SARC:" + path,
                 "yaml": opened["yaml"],
-                "be": opened["be"],
+                "big_endian": opened["big_endian"],
                 "type": opened["type"],
             }
-        except Exception as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except Exception as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
 
     ###############
     # RSTB Editor #
@@ -219,15 +221,15 @@ class Api:
     def open_rstb_file(self, file: Path) -> dict:
         try:
             self._open_rstb, self._open_rstb_be = _rstb.open_rstb(file)
-        except (ValueError, IndexError) as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except (ValueError, IndexError) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return {
             "path": str(file.resolve()),
             "rstb": {
                 _rstb.get_name_from_hash(crc): size
                 for crc, size in self._open_rstb.crc32_map.items()
             },
-            "be": self._open_rstb_be,
+            "big_endian": self._open_rstb_be,
         }
 
     def open_rstb(self) -> dict:
@@ -243,8 +245,8 @@ class Api:
             return {}
         try:
             size, guess = _rstb.get_rstb_value(Path(result), self._open_rstb_be)
-        except ValueError as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except ValueError as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return {"size": size, "guess": guess}
 
     def add_name(self, name: str):
@@ -258,8 +260,8 @@ class Api:
             self._open_rstb.set_size(path, size)
             if isinstance(_rstb.get_name_from_hash(crc32(path.encode("utf8"))), int):
                 _rstb.add_custom(path)
-        except Exception as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except Exception as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return {}
 
     def delete_entry(self, path: str):
@@ -278,8 +280,8 @@ class Api:
         path = Path(path)
         try:
             _rstb.write_rstb(self._open_rstb, path, self._open_rstb_be)
-        except Exception as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except Exception as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return {"path": str(path)}
 
     def export_rstb(self) -> dict:
@@ -292,8 +294,8 @@ class Api:
             _rstb.rstb_to_json(
                 self._open_rstb, Path(result if isinstance(result, str) else result[0])
             )
-        except Exception as e:
-            return {"error": {"msg": str(e), "traceback": format_exc(-5)}}
+        except Exception as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return {}
 
     ###############
@@ -313,7 +315,7 @@ class Api:
         return {
             "path": str(file),
             "yaml": opened["yaml"],
-            "be": opened["be"],
+            "big_endian": opened["big_endian"],
             "type": opened["type"],
         }
 
@@ -324,7 +326,7 @@ class Api:
         file = Path(result)
         return self.open_yaml_file(file)
 
-    def save_yaml(self, yaml: str, obj_type: str, be: bool, path: str) -> dict:
+    def save_yaml(self, yaml: str, obj_type: str, big_endian: bool, path: str) -> dict:
         if not path:
             result = self.window.create_file_dialog(webview.SAVE_DIALOG)
             if result:
@@ -332,14 +334,14 @@ class Api:
             else:
                 return {"error": {"msg": "Cancelled", "traceback": ""}}
         try:
-            data = _yaml.save_yaml(yaml, obj_type, be)
+            data = _yaml.save_yaml(yaml, obj_type, big_endian)
             pathy_path = Path(path)
             if pathy_path.suffix.startswith(".s"):
                 data = compress(data)
             if not path.startswith("SARC:"):
                 pathy_path.write_bytes(data)
             else:
-                self._open_sarc, tree, modded = _sarc.open_sarc(
+                self._open_sarc, _, modded = _sarc.open_sarc(
                     _sarc.add_file(self._open_sarc, path, data)
                 )
                 return {"modded": modded}
@@ -349,6 +351,7 @@ class Api:
 
 
 def main():
+    # pylint: disable=import-outside-toplevel
     api = Api()
     api.window = webview.create_window(
         f"Wild Bits {USER_VERSION}", url=f"{EXEC_DIR}/assets/index.html", js_api=api

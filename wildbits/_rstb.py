@@ -9,7 +9,7 @@ import botw.rstb, botw.extensions
 from botw.hashes import StockHashTable
 from rstb import ResourceSizeTable, SizeCalculator
 from oead.yaz0 import decompress, compress
-from . import DATA_DIR
+from wildbits import DATA_DIR
 
 RSTB_HASHES = {
     crc32(file.encode("utf8")): file for file in StockHashTable(True).get_stock_files()

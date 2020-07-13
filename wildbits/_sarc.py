@@ -1,11 +1,12 @@
+# pylint: disable=bad-continuation
 from functools import lru_cache, reduce
 from pathlib import Path
-from typing import List, Mapping, Union
+from typing import Mapping, Union
 
 from botw import extensions
 from oead import Sarc, SarcWriter, Endianness, Bytes
-from oead.yaz0 import decompress, compress
-from . import util
+from oead.yaz0 import decompress, compress # pylint: disable=import-error
+from wildbits import util
 
 
 def fix_slash(func):
@@ -19,8 +20,6 @@ def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
     if isinstance(sarc, Path):
         data = util.unyaz_if_yazd(sarc.read_bytes())
         sarc = Sarc(data)
-
-    modified_files = set()
 
     def get_sarc_tree(parent_sarc: Sarc) -> (dict, list):
         tree = {}
@@ -102,13 +101,13 @@ def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
     i = 0
     while i < len(nests) - 1:
         try:
-            nf = parent.get_file(nests[i])
-            sarc_bytes = util.unyaz_if_yazd(nf.data)
+            nest_file = parent.get_file(nests[i])
+            sarc_bytes = util.unyaz_if_yazd(nest_file.data)
         except AttributeError:
             raise FileNotFoundError(f"Could not find file {nests[i]} in {nests[i - 1]}")
-        ns = Sarc(sarc_bytes)
+        nest_sarc = Sarc(sarc_bytes)
         del parent
-        parent = ns
+        parent = nest_sarc
         i += 1
     return parent
 
@@ -139,7 +138,7 @@ def delete_file(root_sarc: Sarc, file: str) -> Sarc:
 def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
     if file.endswith("/"):
         file = file[0:-1]
-    if any(char in new_name for char in "\/:*?\"'<>|"):
+    if any(char in new_name for char in r"""\/:*?"'<>|"""):
         raise ValueError(f"{new_name} is not a valid file name.")
     parent = get_parent_sarc(root_sarc, file)
     filename = file.split("//")[-1]
@@ -193,6 +192,7 @@ def update_from_folder(sarc: Sarc, folder: Path) -> Sarc:
 
 
 def _dict_merge(dct: dict, merge_dct: dict, overwrite_lists: bool = False):
+    # pylint: disable=isinstance-second-argument-not-valid-type
     for k in merge_dct:
         if k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], Mapping):
             _dict_merge(dct[k], merge_dct[k])
