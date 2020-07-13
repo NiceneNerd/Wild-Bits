@@ -12,7 +12,8 @@ setup(
     version=VERSION,
     author="NiceneNerd",
     author_email="macadamiadaze@gmail.com",
-    description="A GUI frontend for Leoetlino's Python tools for Breath of the Wild modding",
+    description="Simple GUI editor for BOTW file formats",
+    license="GPLv3",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/NiceneNerd/Wild-Bits/",
@@ -20,7 +21,7 @@ setup(
     packages=["wildbits"],
     entry_points={"gui_scripts": ["wildbits = wildbits.__main__:main"]},
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Stable",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Programming Language :: Python :: 3.7",
     ],
