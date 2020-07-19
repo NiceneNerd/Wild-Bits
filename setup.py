@@ -21,7 +21,7 @@ setup(
     packages=["wildbits"],
     entry_points={"gui_scripts": ["wildbits = wildbits.__main__:main"]},
     classifiers=[
-        "Development Status :: 5 - Stable",
+        "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Programming Language :: Python :: 3.7",
     ],
