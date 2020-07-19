@@ -114,7 +114,10 @@ class Api:
                 return {"error": {"msg": "Cancelled", "traceback": ""}}
         path = Path(path)
         try:
-            path.write_bytes(oead.SarcWriter.from_sarc(self._open_sarc).write()[1])
+            data = oead.SarcWriter.from_sarc(self._open_sarc).write()[1]
+            if path.suffix.startswith(".s") and path.suffix != ".sarc":
+                data = oead.yaz0.compress(data)
+            path.write_bytes(data)
         except (ValueError, OSError) as err:
             return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         else:
