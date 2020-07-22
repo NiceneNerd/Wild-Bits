@@ -27,7 +27,7 @@ setup(
     ],
     python_requires=">=3.7",
     install_requires=[
-        "botw-utils >= 0.2.0",
+        "botw-utils >= 0.2.2",
         "oead >= 1.1.1",
         "rstb >= 1.2.0",
         "pymsyt >= 0.1.5",
