@@ -82,7 +82,7 @@ Building from source requires, in *addition* to the general prerequisites:
 
 -   Node.js v14
 -   The following Python packages:
-    -   botw-utils >= 0.2.0
+    -   botw-utils >= 0.2.2
     -   oead >= 1.1.1
     -   rstb >= 1.2.0
     -   pymsyt >= 0.1.5
