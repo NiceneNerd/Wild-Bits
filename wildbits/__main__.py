@@ -82,7 +82,7 @@ class Api:
             "path": str(file.resolve()),
             "sarc": tree,
             "modded": modded,
-            "big_endian": self._open_sarc.get_endianness() == oead.Endianness.Big,
+            "be": self._open_sarc.get_endianness() == oead.Endianness.Big,
         }
 
     def open_sarc(self) -> dict:
@@ -100,7 +100,7 @@ class Api:
         self._open_sarc, tree, modded = _sarc.open_sarc(oead.Sarc(tmp_sarc.write()[1]))
         return {
             "sarc": tree,
-            "big_endian": big_endian,
+            "be": big_endian,
             "path": "",
             "modded": modded,
         }
@@ -212,7 +212,7 @@ class Api:
             return {
                 "path": "SARC:" + path,
                 "yaml": opened["yaml"],
-                "big_endian": opened["big_endian"],
+                "be": opened["big_endian"],
                 "type": opened["type"],
             }
         except Exception as err:
@@ -232,7 +232,7 @@ class Api:
                 _rstb.get_name_from_hash(crc): size
                 for crc, size in self._open_rstb.crc32_map.items()
             },
-            "big_endian": self._open_rstb_be,
+            "be": self._open_rstb_be,
         }
 
     def open_rstb(self) -> dict:
@@ -318,7 +318,7 @@ class Api:
         return {
             "path": str(file),
             "yaml": opened["yaml"],
-            "big_endian": opened["big_endian"],
+            "be": opened["big_endian"],
             "type": opened["type"],
         }
 
