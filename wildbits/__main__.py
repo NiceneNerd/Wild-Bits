@@ -183,7 +183,7 @@ class Api:
         try:
             self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.update_from_folder(
-                    self._open_sarc, Path(result if isinstance(result) else result[0])
+                    self._open_sarc, Path(result if isinstance(result, str) else result[0])
                 )
             )
         except (FileNotFoundError, OSError, ValueError) as err:

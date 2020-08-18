@@ -58,10 +58,10 @@ def get_rstb_value(file: Path, be: bool) -> (int, bool):
     if size == 0:
         ext = file.suffix
         if ext in botw.extensions.AAMP_EXTS:
-            size = botw.rstb.guess_aamp_size(file)
+            size = botw.rstb.guess_aamp_size(file, be, file.suffix)
             guess = True
         elif ext in {".sbfres", ".bfres"}:
-            size = botw.rstb.guess_bfres_size(file)
+            size = botw.rstb.guess_bfres_size(file, be, file.name)
             guess = True
     return size, guess
 
