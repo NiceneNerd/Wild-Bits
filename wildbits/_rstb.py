@@ -13,6 +13,8 @@ from wildbits import DATA_DIR
 
 RSTB_HASHES = {
     crc32(file.encode("utf8")): file for file in StockHashTable(True).get_stock_files()
+}|{
+    crc32(file.encode("utf8")): file for file in StockHashTable(False).get_stock_files()
 }
 
 _CUSTOM_PATH = DATA_DIR / "custom.json"
