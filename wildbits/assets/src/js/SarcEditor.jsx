@@ -519,7 +519,8 @@ class SarcEditor extends React.Component {
                                             }
                                             onClick={() =>
                                                 this.setState({
-                                                    showRename: true
+                                                    showRename: true,
+                                                    newName: this.state.selected.file
                                                 })
                                             }>
                                             Rename
