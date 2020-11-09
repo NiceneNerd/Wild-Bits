@@ -42,7 +42,7 @@ class Msbt:
 def _init_deepmerge_name_table():
     table = get_default_name_table()
     for i in range(10000):
-        table.add_name(f"File_{i}")
+        table.add_name(f"File{i}")
 
 def open_yaml(file: Path) -> dict:
     yaml: str
