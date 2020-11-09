@@ -1,10 +1,12 @@
 # pylint: disable=bad-continuation
+from functools import lru_cache
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Union
 
 import oead
 import pymsyt
+from oead.aamp import get_default_name_table
 
 
 class Msbt:
@@ -36,6 +38,11 @@ class Msbt:
     def big_endian(self) -> bool:
         return self._be
 
+@lru_cache(1)
+def _init_deepmerge_name_table():
+    table = get_default_name_table()
+    for i in range(10000):
+        table.add_name(f"File_{i}")
 
 def open_yaml(file: Path) -> dict:
     yaml: str
@@ -54,6 +61,7 @@ def open_yaml(file: Path) -> dict:
         if data[0:4] == b"AAMP":
             obj = oead.aamp.ParameterIO.from_binary(data)
             big_endian = False
+            _init_deepmerge_name_table()
             yaml = obj.to_text()
             obj_type = "aamp"
         elif data[0:2] in {b"BY", b"YB"}:
