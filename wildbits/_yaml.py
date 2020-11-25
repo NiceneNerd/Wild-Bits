@@ -61,7 +61,7 @@ def get_sarc_yaml(file) -> dict:
         yaml = oead.byml.to_text(obj)
         obj_type = "byml"
     elif data[0:8] == b"MsgStdBn":
-        obj = Msbt.from_binary(data)
+        obj = Msbt.from_binary(bytes(data))
         big_endian = data[0x08:0x0A] == b"\xfe\xff"
         yaml = obj.to_yaml()
         obj_type = "msbt"
@@ -76,5 +76,4 @@ def save_yaml(yaml: str, obj_type: str, big_endian: bool = False):
     elif obj_type == "byml":
         return oead.byml.to_binary(oead.byml.from_text(yaml), big_endian=big_endian)
     elif obj_type == "msbt":
-        data = Msbt.from_yaml(yaml).to_binary(big_endian)
-        return bytes(data)
+        return Msbt.from_yaml(yaml).to_binary(big_endian)
