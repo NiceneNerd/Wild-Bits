@@ -31,7 +31,7 @@ setup(
         "cefpython3~=66.0; platform_system=='Windows'",
         "oead >= 1.1.1",
         "rstb >= 1.2.0",
-        "pymsyt ~= 0.3.1",
+        "pymsyt ~= 0.3.2",
         "xxhash",
         "pywebview >= 3.2, < 4.0",
     ]
