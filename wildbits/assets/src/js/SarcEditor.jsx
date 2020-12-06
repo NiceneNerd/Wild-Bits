@@ -1,31 +1,32 @@
-import React from "react";
+import {
+    Add,
+    Archive,
+    Create,
+    FileCopy,
+    Folder,
+    FolderOpen,
+    Save,
+    SaveAlt,
+    Unarchive
+} from "@material-ui/icons";
 import {
     Badge,
     Button,
     ButtonGroup,
     ButtonToolbar,
-    Container,
     Col,
+    Container,
+    Form,
+    FormControl,
+    InputGroup,
+    Modal,
     OverlayTrigger,
     Row,
-    Tooltip,
-    Modal,
-    InputGroup,
-    FormControl,
-    Form
+    Tooltip
 } from "react-bootstrap";
-import { TreeView, TreeItem } from "@material-ui/lab";
-import {
-    Add,
-    Create,
-    FileCopy,
-    Folder,
-    FolderOpen,
-    Archive,
-    Unarchive,
-    Save,
-    SaveAlt
-} from "@material-ui/icons";
+import { TreeItem, TreeView } from "@material-ui/lab";
+
+import React from "react";
 
 const SARC_EXTS = [
     "sarc",
@@ -283,6 +284,18 @@ class SarcEditor extends React.Component {
         );
     }
 
+    replace_file = async () => {
+        const file = this.state.selected.file;
+        const res = await pywebview.api.replace_sarc_file(this.state.selected.path);
+        if (res.error) {
+            if (res.error.msg != "Cancelled") this.props.onError(res.error);
+            return;
+        }
+        this.setState({ sarc: res[0], modded: res[1], modified: true }, () =>
+            this.props.showToast(`Replaced ${file}`)
+        );
+    };
+
     edit_yaml() {
         pywebview.api.get_sarc_yaml(this.state.selected.path).then(res => {
             if (res.error) {
@@ -520,7 +533,8 @@ class SarcEditor extends React.Component {
                                             onClick={() =>
                                                 this.setState({
                                                     showRename: true,
-                                                    newName: this.state.selected.file
+                                                    newName: this.state.selected
+                                                        .file
                                                 })
                                             }>
                                             Rename
@@ -539,6 +553,22 @@ class SarcEditor extends React.Component {
                                             Delete
                                         </Button>
                                     </Col>
+                                </Row>
+                                <Row>
+                                    <Col>
+                                        <Button
+                                            variant="extra2"
+                                            disabled={
+                                                !this.state.selected ||
+                                                !this.state.selected.file.includes(
+                                                    "."
+                                                )
+                                            }
+                                            onClick={this.replace_file}>
+                                            Replace
+                                        </Button>
+                                    </Col>
+                                    <Col></Col>
                                 </Row>
                             </Container>
                             {this.state.selected != null && (

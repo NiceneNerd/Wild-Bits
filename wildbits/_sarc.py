@@ -135,6 +135,28 @@ def delete_file(root_sarc: Sarc, file: str) -> Sarc:
 
 
 @fix_slash
+def replace_file(root_sarc: Sarc, file: str, new_data: bytes) -> Sarc:
+    if file.endswith("/"):
+        file = file[0:-1]
+    parent = get_parent_sarc(root_sarc, file)
+    filename = file.split("//")[-1]
+    new_sarc: SarcWriter = SarcWriter.from_sarc(parent)
+    new_sarc.files[filename] = new_data
+    while root_sarc != parent:
+        _, child = new_sarc.write()
+        file = file[0 : file.rindex("//")]
+        if file.endswith("/"):
+            file = file[:-1]
+        parent = get_parent_sarc(root_sarc, file)
+        new_sarc = SarcWriter.from_sarc(parent)
+        ext = file[file.rindex(".") :]
+        new_sarc.files[file] = (
+            child if not (ext.startswith(".s") and ext != ".sarc") else compress(child)
+        )
+    return Sarc(new_sarc.write()[1])
+
+
+@fix_slash
 def rename_file(root_sarc: Sarc, file: str, new_name: str) -> Sarc:
     if file.endswith("/"):
         file = file[0:-1]

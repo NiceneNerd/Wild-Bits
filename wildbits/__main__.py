@@ -9,7 +9,7 @@ from zlib import crc32
 
 import botw
 import oead
-from oead.yaz0 import compress # pylint: disable=import-error
+from oead.yaz0 import compress  # pylint: disable=import-error
 from rstb import ResourceSizeTable
 import webview
 from wildbits import EXEC_DIR, _sarc, _rstb, _yaml
@@ -159,6 +159,18 @@ class Api:
             return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
         return tree, modded
 
+    def replace_sarc_file(self, file: str) -> dict:
+        try:
+            new_file = self.browse()
+            if not new_file:
+                return {"error": {"msg": "Cancelled", "traceback": ""}}
+            self._open_sarc, tree, modded = _sarc.open_sarc(
+                _sarc.replace_file(self._open_sarc, file, Path(new_file).read_bytes())
+            )
+        except (ValueError, KeyError) as err:
+            return {"error": {"msg": str(err), "traceback": format_exc(-5)}}
+        return tree, modded
+
     def add_sarc_file(self, file: str, sarc_path: str) -> dict:
         try:
             data = memoryview(Path(file).read_bytes())
@@ -183,7 +195,8 @@ class Api:
         try:
             self._open_sarc, tree, modded = _sarc.open_sarc(
                 _sarc.update_from_folder(
-                    self._open_sarc, Path(result if isinstance(result, str) else result[0])
+                    self._open_sarc,
+                    Path(result if isinstance(result, str) else result[0]),
                 )
             )
         except (FileNotFoundError, OSError, ValueError) as err:

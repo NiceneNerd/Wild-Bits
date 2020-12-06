@@ -8,7 +8,9 @@ $theme-colors: (
     "warning": #ffd600,
     "info": #00897b,
     "success": #43a047,
-    "dark": darken($body-bg, 2.5%)
+    "dark": darken($body-bg, 2.5%),
+    "extra": #5E35B1,
+    "extra2": #6D4C41,
 );
 $toast-background-color: map-get(
     $map: $theme-colors,
