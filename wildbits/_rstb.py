@@ -2,7 +2,7 @@ import json
 from io import BytesIO
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Union
+from typing import Union, Tuple
 from zlib import crc32
 
 import botw.rstb, botw.extensions
@@ -59,7 +59,7 @@ def get_name_from_hash(crc: int) -> Union[str, int]:
         return addeds.get(crc, crc)
 
 
-def get_rstb_value(file: Path, be: bool) -> (int, bool):
+def get_rstb_value(file: Path, be: bool) -> Tuple[int, bool]:
     guess = False
     size = SizeCalculator().calculate_file_size(str(file), wiiu=be, force=False)
     if size == 0:

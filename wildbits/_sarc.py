@@ -1,7 +1,7 @@
 # pylint: disable=bad-continuation
 from functools import lru_cache, reduce
 from pathlib import Path
-from typing import Mapping, Union
+from typing import Any, Mapping, Dict, Union, Tuple
 
 from botw import extensions
 from oead import Sarc, SarcWriter, Endianness, Bytes
@@ -16,12 +16,12 @@ def fix_slash(func):
     return fixed_func
 
 
-def open_sarc(sarc: Union[Path, Sarc]) -> (Sarc, dict, list):
+def open_sarc(sarc: Union[Path, Sarc]) -> Tuple[Sarc, dict, list]:
     if isinstance(sarc, Path):
         data = util.unyaz_if_yazd(sarc.read_bytes())
         sarc = Sarc(data)
 
-    def get_sarc_tree(parent_sarc: Sarc) -> (dict, list):
+    def get_sarc_tree(parent_sarc: Sarc) -> Tuple[dict, list]:
         tree = {}
         modded = set()
         for file in sorted(parent_sarc.get_files(), key=lambda f: f.name):
@@ -70,7 +70,7 @@ def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
 
 @lru_cache(32)
 @fix_slash
-def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> {}:
+def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> Dict[str, Any]:
     if file.endswith("/"):
         file = file[0:-1]
     data: memoryview = get_nested_file_data(sarc, file)
