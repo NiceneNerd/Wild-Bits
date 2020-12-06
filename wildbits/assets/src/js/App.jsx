@@ -1,7 +1,8 @@
+import { Button, Modal, Tab, Tabs, Toast } from "react-bootstrap";
+
 import React from "react";
-import { Button, Modal, Tabs, Tab, Toast } from "react-bootstrap";
-import SarcEditor from "./SarcEditor.jsx";
 import RstbEditor from "./RstbEditor.jsx";
+import SarcEditor from "./SarcEditor.jsx";
 import YamlEditor from "./YamlEditor.jsx";
 
 class App extends React.Component {
@@ -17,33 +18,27 @@ class App extends React.Component {
             confirmMsg: "",
             confirmCallback: () => null
         };
-        this.setTab = this.setTab.bind(this);
         window.setTab = this.setTab;
-        this.showError = this.showError.bind(this);
-        this.showToast = this.showToast.bind(this);
-        this.showConfirm = this.showConfirm.bind(this);
         this.yamlRef = React.createRef();
-        this.passFile = this.passFile.bind(this);
         this.sarcRef = React.createRef();
-        this.passMod = this.passMod.bind(this);
     }
 
-    setTab(tab) {
+    setTab = tab => {
         this.setState({ openTab: tab });
-    }
+    };
 
-    showError(error) {
+    showError = error => {
         this.setState({ showError: true, errorMsg: error.msg });
         console.error(error.traceback);
-    }
+    };
 
-    showToast(toastMsg) {
+    showToast = toastMsg => {
         this.setState({ showToast: true, toastMsg });
-    }
+    };
 
-    showConfirm(confirmMsg, confirmCallback) {
+    showConfirm = (confirmMsg, confirmCallback) => {
         this.setState({ showConfirm: true, confirmMsg, confirmCallback });
-    }
+    };
 
     passFile = res => {
         this.yamlRef.current.open_sarc_yaml(res);
@@ -51,7 +46,7 @@ class App extends React.Component {
     };
     passMod = file => this.sarcRef.current.yaml_modified(file);
 
-    render() {
+    render = () => {
         return (
             <>
                 <Tabs activeKey={this.state.openTab} onSelect={this.setTab}>
@@ -141,7 +136,7 @@ class App extends React.Component {
                 </Toast>
             </>
         );
-    }
+    };
 }
 
 export default App;

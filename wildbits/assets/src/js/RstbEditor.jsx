@@ -1,32 +1,32 @@
-import React from "react";
+import {
+    Add,
+    Delete,
+    Edit,
+    FolderOpen,
+    OpenInNew,
+    Save,
+    SaveAlt,
+    Search
+} from "@material-ui/icons";
 import {
     Badge,
-    Container,
-    Form,
-    Row,
-    Col,
     Button,
     ButtonGroup,
     ButtonToolbar,
-    OverlayTrigger,
-    Table,
-    Tooltip,
-    InputGroup,
+    Col,
+    Container,
+    Form,
     FormControl,
-    Modal
+    InputGroup,
+    Modal,
+    OverlayTrigger,
+    Row,
+    Tooltip
 } from "react-bootstrap";
-import {
-    Add,
-    Edit,
-    Delete,
-    FolderOpen,
-    Search,
-    Save,
-    SaveAlt,
-    OpenInNew
-} from "@material-ui/icons";
+
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
+import React from "react";
 
 class RstbEditor extends React.Component {
     constructor(props) {
@@ -42,19 +42,10 @@ class RstbEditor extends React.Component {
             showSearch: false,
             editEntry: ""
         };
-        this.open = this.open.bind(this);
         window.openRstb = this.open;
-        this.open_rstb = this.open_rstb.bind(this);
-        this.save_rstb = this.save_rstb.bind(this);
-        this.render_rstb = this.render_rstb.bind(this);
-        this.update_filter = this.update_filter.bind(this);
-        this.add_entry = this.add_entry.bind(this);
-        this.edit_entry = this.edit_entry.bind(this);
-        this.export_rstb = this.export_rstb.bind(this);
-        this.search = this.search.bind(this);
     }
 
-    render_rstb({ index, style }) {
+    render_rstb = ({ index, style }) => {
         const file = this.state.rstb_files[index];
         return (
             <Row style={style}>
@@ -93,43 +84,40 @@ class RstbEditor extends React.Component {
                 </Col>
             </Row>
         );
-    }
+    };
 
-    search(query) {
-        this.setState({ showSearch: false }, () => {
-            pywebview.api.add_name(query).then(hash => {
-                const idx = this.state.rstb_files.indexOf(hash);
-                console.log(hash);
-                console.log(idx);
-                if (idx > -1) {
-                    this.state.rstb_files[idx] = query;
-                    this.state.rstb[query] = this.state.rstb[hash];
-                    delete this.state.rstb[hash];
+    search = query => {
+        this.setState({ showSearch: false }, async () => {
+            const hash = await pywebview.api.add_name(query);
+            const idx = this.state.rstb_files.indexOf(hash);
+            if (idx > -1) {
+                this.state.rstb_files[idx] = query;
+                this.state.rstb[query] = this.state.rstb[hash];
+                delete this.state.rstb[hash];
+            }
+            this.setState(
+                {
+                    rstb: this.state.rstb,
+                    rstb_files: this.state.rstb_files
+                },
+                () => {
+                    document.getElementById("rstb-filter").value = query;
+                    this.update_filter();
                 }
-                this.setState(
-                    {
-                        rstb: this.state.rstb,
-                        rstb_files: this.state.rstb_files
-                    },
-                    () => {
-                        document.getElementById("rstb-filter").value = query;
-                        this.update_filter();
-                    }
-                );
-            });
+            );
         });
-    }
+    };
 
-    update_filter() {
+    update_filter = () => {
         const filter = document.getElementById("rstb-filter").value;
         this.setState({
             rstb_files: Object.keys(this.state.rstb)
                 .filter(key => key.includes(filter))
                 .sort(file_sort)
         });
-    }
+    };
 
-    open(data) {
+    open = data => {
         if (data.error) {
             this.props.onError(data.error);
             return;
@@ -139,101 +127,96 @@ class RstbEditor extends React.Component {
         this.setState({ ...data, rstb_files: [], modified: false }, () =>
             this.setState({ rstb_files })
         );
-    }
+    };
 
-    open_rstb() {
+    open_rstb = () => {
         pywebview.api.open_rstb().then(this.open);
-    }
+    };
 
-    save_rstb(path) {
-        pywebview.api.save_rstb(path).then(res => {
-            if (res.error && res.error.msg != "Cancelled") {
-                this.props.onError(res.error);
-                return;
-            }
-            const rstb_files = this.state.rstb_files;
-            this.setState(
-                { path: res.path, rstb_files: [], modified: false },
-                () => this.setState({ rstb_files })
-            );
-        });
-    }
-
-    add_entry(path, size) {
-        size = parseInt(size);
-        this.setState({ showAdd: false }, () => {
-            pywebview.api.set_entry(path, size).then(res => {
-                if (res.error) {
-                    this.props.onError(res.error);
-                    return;
-                }
-                const rstb_files = this.state.rstb_files;
-                rstb_files.push(path);
-                const rstb = this.state.rstb;
-                rstb[path] = size;
-                this.setState({ rstb_files, rstb, modified: true }, () =>
-                    this.props.showToast("RSTB entry added")
-                );
-            });
-        });
-    }
-
-    edit_entry(size) {
-        size = parseInt(size);
-        this.setState({ showEdit: false }, () => {
-            pywebview.api.set_entry(this.state.editEntry, size).then(res => {
-                if (res.error) {
-                    this.props.onError(res.error);
-                    return;
-                }
-                const rstb = this.state.rstb;
-                rstb[this.state.editEntry] = size;
-                const rstb_files = this.state.rstb_files;
-                this.setState(
-                    {
-                        rstb,
-                        rstb_files: [],
-                        modified: true,
-                        editEntry: ""
-                    },
-                    () => {
-                        this.props.showToast("RSTB entry updated");
-                        this.setState({ rstb_files });
-                    }
-                );
-            });
-        });
-    }
-
-    delete_entry(file) {
-        this.props.showConfirm(
-            `Are you sure you want to delete the RSTB entry for <code>${file}</code>?`,
-            () => {
-                pywebview.api.delete_entry(file).then(() => {
-                    const rstb = this.state.rstb;
-                    delete rstb[file];
-                    const rstb_files = this.state.rstb_files.filter(
-                        f => f != file
-                    );
-                    this.setState({ rstb, rstb_files, modified: true }, () =>
-                        this.props.showToast("RSTB entry deleted")
-                    );
-                });
-            }
+    save_rstb = async path => {
+        const res = pywebview.api.save_rstb(path);
+        if (res.error && res.error.msg != "Cancelled") {
+            this.props.onError(res.error);
+            return;
+        }
+        const rstb_files = this.state.rstb_files;
+        this.setState({ path: res.path, rstb_files: [], modified: false }, () =>
+            this.setState({ rstb_files })
         );
-    }
+    };
 
-    export_rstb() {
-        pywebview.api.export_rstb().then(res => {
+    add_entry = (path, size) => {
+        size = parseInt(size);
+        this.setState({ showAdd: false }, async () => {
+            const res = await pywebview.api.set_entry(path, size);
             if (res.error) {
                 this.props.onError(res.error);
                 return;
             }
-            this.props.showToast("RSTB exported");
+            const rstb_files = this.state.rstb_files;
+            rstb_files.push(path);
+            const rstb = this.state.rstb;
+            rstb[path] = size;
+            this.setState({ rstb_files, rstb, modified: true }, () =>
+                this.props.showToast("RSTB entry added")
+            );
         });
-    }
+    };
 
-    render() {
+    edit_entry = size => {
+        size = parseInt(size);
+        this.setState({ showEdit: false }, async () => {
+            const res = await pywebview.api.set_entry(
+                this.state.editEntry,
+                size
+            );
+            if (res.error) {
+                this.props.onError(res.error);
+                return;
+            }
+            const rstb = this.state.rstb;
+            rstb[this.state.editEntry] = size;
+            const rstb_files = this.state.rstb_files;
+            this.setState(
+                {
+                    rstb,
+                    rstb_files: [],
+                    modified: true,
+                    editEntry: ""
+                },
+                () => {
+                    this.props.showToast("RSTB entry updated");
+                    this.setState({ rstb_files });
+                }
+            );
+        });
+    };
+
+    delete_entry = file => {
+        this.props.showConfirm(
+            `Are you sure you want to delete the RSTB entry for <code>${file}</code>?`,
+            async () => {
+                await pywebview.api.delete_entry(file);
+                const rstb = this.state.rstb;
+                delete rstb[file];
+                const rstb_files = this.state.rstb_files.filter(f => f != file);
+                this.setState({ rstb, rstb_files, modified: true }, () =>
+                    this.props.showToast("RSTB entry deleted")
+                );
+            }
+        );
+    };
+
+    export_rstb = async () => {
+        const res = await pywebview.api.export_rstb();
+        if (res.error) {
+            this.props.onError(res.error);
+            return;
+        }
+        this.props.showToast("RSTB exported");
+    };
+
+    render = () => {
         return (
             <>
                 <Container fluid className="rstb">
@@ -436,7 +419,7 @@ class RstbEditor extends React.Component {
                 />
             </>
         );
-    }
+    };
 }
 
 class SearchModal extends React.Component {

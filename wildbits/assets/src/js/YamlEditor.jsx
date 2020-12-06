@@ -1,35 +1,38 @@
-import React from "react";
-import {
-    Badge,
-    Container,
-    Row,
-    Col,
-    Button,
-    ButtonGroup,
-    ButtonToolbar,
-    Tooltip,
-    OverlayTrigger
-} from "react-bootstrap";
 import {
     Assignment,
+    ControlCamera,
+    FileCopy,
+    FindReplace,
     FolderOpen,
+    Redo,
     Save,
     SaveAlt,
     Search,
-    FindReplace,
-    Undo,
-    Redo,
-    FileCopy,
-    ControlCamera
+    Undo
 } from "@material-ui/icons";
-import CutIcon from "./CutIcon.jsx";
+import {
+    Badge,
+    Button,
+    ButtonGroup,
+    ButtonToolbar,
+    Col,
+    Container,
+    OverlayTrigger,
+    Row,
+    Tooltip
+} from "react-bootstrap";
+
 import AceEditor from "react-ace";
+import CutIcon from "./CutIcon.jsx";
+import React from "react";
+
 import "ace-builds/src-min-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/mode-yaml";
 import "ace-builds/src-noconflict/ext-language_tools";
 import "ace-builds/src-noconflict/theme-monokai";
 
-const yamlTypes = {
+
+const YAML_TYPES = {
     AAMP: "aamp",
     BYML: "byml",
     MSBT: "msbt"
@@ -45,11 +48,7 @@ class YamlEditor extends React.Component {
             path: "",
             modified: false
         };
-        this.open = this.open.bind(this);
         window.openYaml = this.open;
-        this.open_yaml = this.open_yaml.bind(this);
-        this.save_yaml = this.save_yaml.bind(this);
-        this.open_sarc_yaml = this.open_sarc_yaml.bind(this);
         this.aceRef = React.createRef();
     }
 
@@ -58,7 +57,7 @@ class YamlEditor extends React.Component {
         this.aceRef.current.editor.execCommand("resize");
     };
 
-    open(data) {
+    open = data => {
         if (data.error) {
             this.props.onError(data.error);
             return;
@@ -67,36 +66,40 @@ class YamlEditor extends React.Component {
             ...data,
             modified: false
         });
-    }
+    };
 
-    open_yaml() {
+    open_yaml = () => {
         pywebview.api.open_yaml().then(this.open);
-    }
+    };
 
-    save_yaml(path) {
-        pywebview.api
-            .save_yaml(this.state.yaml, this.state.type, this.state.be, path)
-            .then(res => {
-                console.log(res);
-                if (res.error) {
-                    this.props.onError(res.error);
-                    return;
-                }
-                this.setState({
-                    modified: false,
-                    path: path || this.state.path
-                });
-                this.props.showToast(
-                    "File saved" + (path.startsWith("SARC:") ? " to SARC" : "")
-                );
-                if (path.startsWith("SARC:")) {
-                    this.props.passMod(path.replace("SARC:", ""));
-                }
-            })
-            .catch(err => this.props.onError(err));
-    }
+    save_yaml = async path => {
+        try {
+            const res = await pywebview.api.save_yaml(
+                this.state.yaml,
+                this.state.type,
+                this.state.be,
+                path
+            );
+            if (res.error) {
+                this.props.onError(res.error);
+                return;
+            }
+            this.setState({
+                modified: false,
+                path: path || this.state.path
+            });
+            this.props.showToast(
+                "File saved" + (path.startsWith("SARC:") ? " to SARC" : "")
+            );
+            if (path.startsWith("SARC:")) {
+                this.props.passMod(path.replace("SARC:", ""));
+            }
+        } catch (error) {
+            this.props.onError(err);
+        }
+    };
 
-    render() {
+    render = () => {
         return (
             <Container
                 fluid
@@ -118,7 +121,9 @@ class YamlEditor extends React.Component {
                                     overlay={<Tooltip>Save</Tooltip>}>
                                     <Button
                                         disabled={!this.state.yaml}
-                                        onClick={() => this.save_yaml(this.state.path)}>
+                                        onClick={() =>
+                                            this.save_yaml(this.state.path)
+                                        }>
                                         <Save />
                                     </Button>
                                 </OverlayTrigger>
@@ -140,7 +145,9 @@ class YamlEditor extends React.Component {
                                         variant="success"
                                         disabled={!this.state.yaml}
                                         onClick={() =>
-                                            this.aceRef.current.editor.execCommand("cut")
+                                            this.aceRef.current.editor.execCommand(
+                                                "cut"
+                                            )
                                         }>
                                         <CutIcon />
                                     </Button>
@@ -152,7 +159,9 @@ class YamlEditor extends React.Component {
                                         variant="success"
                                         disabled={!this.state.yaml}
                                         onClick={() =>
-                                            this.aceRef.current.editor.execCommand("copy")
+                                            this.aceRef.current.editor.execCommand(
+                                                "copy"
+                                            )
                                         }>
                                         <FileCopy />
                                     </Button>
@@ -180,7 +189,9 @@ class YamlEditor extends React.Component {
                                         variant="secondary"
                                         disabled={!this.state.yaml}
                                         onClick={() =>
-                                            this.aceRef.current.editor.execCommand("undo")
+                                            this.aceRef.current.editor.execCommand(
+                                                "undo"
+                                            )
                                         }>
                                         <Undo />
                                     </Button>
@@ -192,7 +203,9 @@ class YamlEditor extends React.Component {
                                         variant="secondary"
                                         disabled={!this.state.yaml}
                                         onClick={() =>
-                                            this.aceRef.current.editor.execCommand("redo")
+                                            this.aceRef.current.editor.execCommand(
+                                                "redo"
+                                            )
                                         }>
                                         <Redo />
                                     </Button>
@@ -204,14 +217,18 @@ class YamlEditor extends React.Component {
                                         variant="secondary"
                                         disabled={!this.state.yaml}
                                         onClick={() =>
-                                            this.aceRef.current.editor.execCommand("find")
+                                            this.aceRef.current.editor.execCommand(
+                                                "find"
+                                            )
                                         }>
                                         <Search />
                                     </Button>
                                 </OverlayTrigger>
                                 <OverlayTrigger
                                     placement="bottom"
-                                    overlay={<Tooltip>Find and Replace</Tooltip>}>
+                                    overlay={
+                                        <Tooltip>Find and Replace</Tooltip>
+                                    }>
                                     <Button
                                         variant="secondary"
                                         disabled={!this.state.yaml}
@@ -234,7 +251,9 @@ class YamlEditor extends React.Component {
                             }}>
                             <OverlayTrigger
                                 placement="bottom"
-                                overlay={<Tooltip>{this.state.path}</Tooltip> || null}>
+                                overlay={
+                                    <Tooltip>{this.state.path}</Tooltip> || null
+                                }>
                                 <Badge variant="secondary">
                                     {this.state.path
                                         ? this.state.path
@@ -247,21 +266,27 @@ class YamlEditor extends React.Component {
                                 </Badge>
                             </OverlayTrigger>{" "}
                             {this.state.yaml &&
-                                [yamlTypes.BYML, yamlTypes.MSBT].includes(
+                                [YAML_TYPES.BYML, YAML_TYPES.MSBT].includes(
                                     this.state.type
                                 ) && (
                                     <>
                                         {this.state.be ? (
                                             <OverlayTrigger
                                                 placement="bottom"
-                                                overlay={<Tooltip>Big Endian</Tooltip>}>
+                                                overlay={
+                                                    <Tooltip>
+                                                        Big Endian
+                                                    </Tooltip>
+                                                }>
                                                 <Badge variant="info">BE</Badge>
                                             </OverlayTrigger>
                                         ) : (
                                             <OverlayTrigger
                                                 placement="bottom"
                                                 overlay={
-                                                    <Tooltip>Little Endian</Tooltip>
+                                                    <Tooltip>
+                                                        Little Endian
+                                                    </Tooltip>
                                                 }>
                                                 <Badge variant="info">LE</Badge>
                                             </OverlayTrigger>
@@ -286,7 +311,9 @@ class YamlEditor extends React.Component {
                         showPrintMargin={false}
                         enableLiveAutocompletion={true}
                         value={this.state.yaml}
-                        onChange={yaml => this.setState({ yaml, modified: true })}
+                        onChange={yaml =>
+                            this.setState({ yaml, modified: true })
+                        }
                     />
                 </Row>
             </Container>
