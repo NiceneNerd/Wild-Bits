@@ -1,5 +1,5 @@
 # pylint: disable=bad-continuation
-from functools import lru_cache, reduce
+from functools import reduce
 from pathlib import Path
 from typing import Any, Mapping, Dict, Union, Tuple
 
@@ -47,13 +47,10 @@ def open_sarc(sarc: Union[Path, Sarc]) -> Tuple[Sarc, dict, list]:
                 modded.add(file.name)
         return tree, modded
 
-    get_nested_file_data.cache_clear()
-    get_nested_file_meta.cache_clear()
     tree, modded = get_sarc_tree(sarc)
     return sarc, tree, list(modded)
 
 
-@lru_cache(10)
 @fix_slash
 def get_nested_file(sarc: Sarc, file: str):
     if file.endswith("/"):
@@ -62,13 +59,11 @@ def get_nested_file(sarc: Sarc, file: str):
     return parent.get_file(file.split("//")[-1])
 
 
-@lru_cache(10)
 def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
     file_bytes = get_nested_file(sarc, file).data
     return bytes(file_bytes) if not unyaz else bytes(util.unyaz_if_yazd(file_bytes))
 
 
-@lru_cache(32)
 @fix_slash
 def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> Dict[str, Any]:
     if file.endswith("/"):
@@ -91,7 +86,6 @@ def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> Dict[str, Any]:
     }
 
 
-@lru_cache(8)
 @fix_slash
 def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
     if file.endswith("/"):
