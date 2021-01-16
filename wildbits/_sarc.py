@@ -59,8 +59,6 @@ def get_nested_file(sarc: Sarc, file: str):
     if file.endswith("/"):
         file = file[0:-1]
     parent = get_parent_sarc(sarc, file)
-    global sarcs
-    sarcs.append(parent)
     nest_file = parent.get_file(file.split("//")[-1])
     return nest_file
 
@@ -99,6 +97,7 @@ def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
     nests = file.replace("SARC:", "").split("//")
     parent = root_sarc
     i = 0
+    global sarcs
     while i < len(nests) - 1:
         try:
             nest_file = parent.get_file(nests[i])
@@ -108,6 +107,7 @@ def get_parent_sarc(root_sarc: Sarc, file: str) -> Sarc:
         nest_sarc = Sarc(sarc_bytes)
         del parent
         parent = nest_sarc
+        sarcs.append(parent)
         i += 1
     return parent
 
