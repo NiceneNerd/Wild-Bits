@@ -8,6 +8,7 @@ from oead import Sarc, SarcWriter, Endianness, Bytes
 from oead.yaz0 import decompress, compress # pylint: disable=import-error
 from wildbits import util
 
+sarcs = [] 
 
 def fix_slash(func):
     def fixed_func(*args, **kwargs):
@@ -17,6 +18,8 @@ def fix_slash(func):
 
 
 def open_sarc(sarc: Union[Path, Sarc]) -> Tuple[Sarc, dict, list]:
+    global sarcs
+    sarcs.clear()
     if isinstance(sarc, Path):
         data = util.unyaz_if_yazd(sarc.read_bytes())
         sarc = Sarc(data)
@@ -56,19 +59,22 @@ def get_nested_file(sarc: Sarc, file: str):
     if file.endswith("/"):
         file = file[0:-1]
     parent = get_parent_sarc(sarc, file)
-    return parent.get_file(file.split("//")[-1])
+    global sarcs
+    sarcs.append(parent)
+    nest_file = parent.get_file(file.split("//")[-1])
+    return nest_file
 
 
 def get_nested_file_data(sarc: Sarc, file: str, unyaz: bool = True) -> bytes:
-    file_bytes = get_nested_file(sarc, file).data
-    return bytes(file_bytes) if not unyaz else bytes(util.unyaz_if_yazd(file_bytes))
+    file_bytes = bytes(get_nested_file(sarc, file).data)
+    return file_bytes if not unyaz else bytes(util.unyaz_if_yazd(file_bytes))
 
 
 @fix_slash
 def get_nested_file_meta(sarc: Sarc, file: str, wiiu: bool) -> Dict[str, Any]:
     if file.endswith("/"):
         file = file[0:-1]
-    data: memoryview = get_nested_file_data(sarc, file)
+    data = get_nested_file_data(sarc, file)
     filename = Path(file).name.replace(".s", ".")
     return {
         "file": Path(file).name,
