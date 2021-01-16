@@ -285,10 +285,7 @@ class Api:
 
     def save_rstb(self, path: str = "") -> dict:
         if not path:
-            result = self.window.create_file_dialog(
-                webview.SAVE_DIALOG,
-                file_types=tuple(["RSTB File (*.rsizetable; *.srsizetable)"]),
-            )
+            result = self.window.create_file_dialog(webview.SAVE_DIALOG)
             if result:
                 path = result if isinstance(result, str) else result[0]
             else:
