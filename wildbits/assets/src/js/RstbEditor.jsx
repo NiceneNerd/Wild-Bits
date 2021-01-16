@@ -134,11 +134,12 @@ class RstbEditor extends React.Component {
     };
 
     save_rstb = async path => {
-        const res = pywebview.api.save_rstb(path);
+        const res = await pywebview.api.save_rstb(path);
         if (res.error && res.error.msg != "Cancelled") {
             this.props.onError(res.error);
             return;
         }
+        this.props.showToast("File saved");
         const rstb_files = this.state.rstb_files;
         this.setState({ path: res.path, rstb_files: [], modified: false }, () =>
             this.setState({ rstb_files })
