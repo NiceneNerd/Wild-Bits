@@ -1,0 +1,162 @@
+.btn-group-xs > .btn,
+.btn-xs {
+    padding: 0.125rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 0.5;
+    border-radius: 0.2rem;
+}
+
+@import "Colors.scss";
+@import "../node_modules/bootstrap/scss/bootstrap.scss";
+@import "../node_modules/bootstrap/scss/bootstrap-reboot.scss";
+@import "AceTheme.scss";
+
+html,
+body,
+#root {
+    height: 100%;
+    overflow-y: hidden;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    position: relative;
+
+    .tab-content {
+        margin: 0 -0.25rem;
+        height: 0;
+        flex-grow: 1;
+
+        .tab-pane {
+            height: 100%;
+        }
+
+        .toolbar {
+            background-color: scale-color($color: $body-bg, $lightness: -25%);
+            padding: 0.5rem 0;
+            flex-wrap: nowrap;
+            min-height: fit-content;
+
+            .btn-toolbar {
+                flex-wrap: nowrap;
+
+                .MuiSvgIcon-root {
+                  color: $body-color !important;
+                }
+            }
+        }
+
+        .main {
+            flex-grow: 1;
+            min-height: 0;
+            height: 0%;
+        }
+    }
+}
+
+body {
+    font-family: "Roboto", "Droid Sans", "Helvetica Neue", "Open Sans",
+        "Source Sans Pro", "Segoe UI", sans-serif;
+}
+
+.nothing {
+    display: flex;
+    align-items: center;
+    margin: 1rem;
+    min-height: calc(100% - 2rem);
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: map-get($map: $theme-colors, $key: "secondary");
+
+    span {
+        display: block;
+        margin: 0 auto;
+    }
+}
+
+.nav-tabs {
+    background-color: #000000;
+    border: 0;
+    color: $body-color;
+
+    .nav-item,
+    .nav-link {
+        border: 0;
+        color: $body-color;
+
+        &.active {
+            background-color: transparent;
+            color: $body-color;
+            border-bottom: 0.25rem $body-color solid;
+        }
+    }
+}
+
+.container-fluid {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sarc {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+
+    .tree {
+        height: 100%;
+        overflow-y: auto;
+
+        .MuiTreeItem-root:focus > .MuiTreeItem-content {
+            background-color: map-get($map: $theme-colors, $key: "primary");
+        }
+    }
+
+    .file-actions {
+        margin-top: 0.5rem;
+
+        .col {
+            padding: 0 5px;
+        }
+
+        .btn {
+            display: block;
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+
+        .filename {
+            overflow-x: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+}
+
+.rstb {
+    .main {
+        display: flex;
+        flex-direction: column;
+        padding: 0.5rem 0 0 0;
+        margin: 0 7px 0 -8px;
+
+        .col {
+            min-width: auto;
+            -ms-min-width: 0;
+        }
+
+        .rstb-list {
+            margin-right: 0;
+
+            .row {
+                margin: 0;
+    
+                &:nth-child(even) {
+                    background-color: map-get($map: $theme-colors, $key: "dark");
+                }
+            }
+        }
+    }
+}
