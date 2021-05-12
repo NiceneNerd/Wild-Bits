@@ -2,7 +2,7 @@
 name = "wildbits"
 version = "0.1.0"
 description = "A Tauri App"
-authors = ["you"]
+authors = [ "you" ]
 license = ""
 repository = ""
 default-run = "wildbits"
@@ -13,15 +13,19 @@ build = "src/build.rs"
 tauri-build = { version = "1.0.0-beta.0" }
 
 [dependencies]
-aamp = "0.1.5"
+anyhow = "1.0.40"
+aamp = "0.1.6"
 byml = "0.1.4"
-rstb = "0.1.4"
+rstb = "0.1.5"
 botw-utils = "0.3.1"
 msyt = { git = "https://github.com/NiceneNerd/msyt", rev = "f5d0c6e33cc8d12d66f1dd0d329ecf00bcbb9c51" }
 sarc-rs = "0.1.3"
 serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.0.0-beta.0", features = ["api-all"] }
+serde = { version = "1.0", features = [ "derive" ] }
+
+[dependencies.tauri]
+version = "1.0.0-beta"
+features = ["api-all"]
 
 [features]
 default = [ "custom-protocol" ]

@@ -25,8 +25,10 @@ import {
     Tooltip
 } from "react-bootstrap";
 import { TreeItem, TreeView } from "@material-ui/lab";
+import { invoke } from '@tauri-apps/api/tauri'
 
 import React from "react";
+import { open } from "@tauri-apps/api/dialog";
 
 const SARC_EXTS = [
     "sarc",
@@ -160,8 +162,10 @@ class SarcEditor extends React.Component {
         }
     };
 
-    open_sarc = () => {
-        pywebview.api.open_sarc().then(this.open);
+    open_sarc = async () => {
+        // pywebview.api.open_sarc().then(this.open);
+        console.log("hey");
+        open().then(str => console.log(str));
     };
 
     save_sarc = async path => {

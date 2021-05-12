@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "aamp"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bc0d10be053eb4b027653599f2aec5c58a2982867cc34e8836258aec0862e7e"
+checksum = "6a89bafddb3a126576b8362c5adf377ebe1cea9d6484f80753a49bfe4e0b17c4"
 dependencies = [
  "binread 1.4.1",
  "binwrite",
@@ -335,7 +335,7 @@ dependencies = [
  "regex",
  "serde_json",
  "twox-hash",
- "yaz0",
+ "yaz0 0.1.2",
 ]
 
 [[package]]
@@ -377,7 +377,7 @@ dependencies = [
  "parse_int 0.4.0",
  "rayon",
  "thiserror",
- "yaz0",
+ "yaz0 0.1.2",
 ]
 
 [[package]]
@@ -2940,22 +2940,22 @@ dependencies = [
 
 [[package]]
 name = "rstb"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "494f81b8557126c3aeba8e4a6ffa8ffd4530f61499e3f3d18f00109ff03c4d9b"
+checksum = "8a42f4df337742da260458e36d4de63bdebe5f535e2402d77c2edb4efe3d146e"
 dependencies = [
- "binread 1.4.1",
+ "binread 2.1.1",
  "binwrite",
- "cached 0.20.0",
+ "cached 0.23.0",
  "crc",
  "csv",
  "indexmap",
  "lazy_static",
- "parse_int 0.4.0",
+ "parse_int 0.5.0",
  "serde",
  "serde_derive",
  "serde_json",
- "yaz0",
+ "yaz0 0.3.0",
 ]
 
 [[package]]
@@ -3100,18 +3100,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.125"
+version = "1.0.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "558dc50e1a5a5fa7112ca2ce4effcb321b0300c0d4ccf0776a9f60cd89031171"
+checksum = "ec7505abeacaec74ae4778d9d9328fe5a5d04253220a85c4ee022239fc996d03"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.125"
+version = "1.0.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b093b7a2bb58203b5da3056c05b4ec1fed827dcfdb37347a8841695263b3d06d"
+checksum = "963a7dbc9895aeac7ac90e74f34a5d5261828f79df35cbed41e10189d3804d43"
 dependencies = [
  "proc-macro2",
  "quote 1.0.9",
@@ -3445,9 +3445,9 @@ dependencies = [
 
 [[package]]
 name = "tauri"
-version = "1.0.0-beta.0"
+version = "1.0.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa9bd4cf89f22018c1c78784826a66f148f384f8e03e6b65998a7a87e5ea9cea"
+checksum = "4fdc09779e4396b27ceb28d4ad1a998b0a3bc5f2afa4a563ab84bb4a55afdb77"
 dependencies = [
  "base64 0.13.0",
  "bincode",
@@ -3546,9 +3546,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-macros"
-version = "1.0.0-beta.0"
+version = "1.0.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57b331b5b5c372c5354634c1dc2e66a01dba858a45def497f831864b9046d03e"
+checksum = "7ba8b137b0295c4271f4fca71cba5c868be2f9432f74b01c3c980725af777398"
 dependencies = [
  "proc-macro2",
  "quote 1.0.9",
@@ -3558,9 +3558,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-runtime"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "342bed3cc8f25c8948718c8a546bcc2946fbf0111c7129136a25c4edd5e12855"
+checksum = "4c018e168d448cc01368f5d25d97374f668e83cad94d1f324ef4ca2a1468ce33"
 dependencies = [
  "serde",
  "serde_json",
@@ -3571,9 +3571,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-runtime-wry"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5a1286546dddf461983f63e5908edea3159c437c28bd0d574abd2ec7db3fb9e"
+checksum = "30fb55bbd7bb42c93fd48e1e9f55bcdd8ae35156ecf40a475c37bce4c435a0d7"
 dependencies = [
  "image",
  "tauri-runtime",
@@ -4154,6 +4154,7 @@ name = "wildbits"
 version = "0.1.0"
 dependencies = [
  "aamp",
+ "anyhow",
  "botw-utils",
  "byml",
  "msyt",
@@ -4313,6 +4314,17 @@ checksum = "c7d5cc1747919118723211eccad2285a2ac6bbbcada9e7cd91e7f6ce5227f83f"
 dependencies = [
  "arrayvec 0.4.12",
  "byteorder",
+]
+
+[[package]]
+name = "yaz0"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29c578bd702f600fb30b486ab767007cd17f5fad99a40fb943821a53de12b7ae"
+dependencies = [
+ "arrayvec 0.5.2",
+ "byteorder",
+ "thiserror",
 ]
 
 [[package]]
