@@ -17,3 +17,10 @@ $toast-background-color: map-get(
     $key: "success"
 );
 $toast-color: $body-color;
+
+code {
+    color: map-get(
+        $map: $theme-colors,
+        $key: "success"
+    );
+}

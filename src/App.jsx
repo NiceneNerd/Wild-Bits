@@ -1,4 +1,4 @@
-import { Button, Modal, Tab, Tabs, Toast } from "react-bootstrap";
+import { Button, Modal, Spinner, Tab, Tabs, Toast } from "react-bootstrap";
 
 import React from "react";
 import RstbEditor from "./RstbEditor.jsx";
@@ -11,6 +11,7 @@ class App extends React.Component {
         this.state = {
             openTab: "sarc",
             showError: false,
+            loading: false,
             errorMsg: "",
             showToast: false,
             toastMsg: "",
@@ -27,9 +28,13 @@ class App extends React.Component {
         this.setState({ openTab: tab });
     };
 
+    setLoading = yea => {
+        this.setState({ loading: yea });
+    }
+
     showError = error => {
-        this.setState({ showError: true, errorMsg: error.msg });
-        console.error(error.traceback);
+        this.setState({ showError: true, errorMsg: error.message });
+        console.error(error.backtrace);
     };
 
     showToast = toastMsg => {
@@ -53,6 +58,7 @@ class App extends React.Component {
                     <Tab eventKey="sarc" title="SARC">
                         <SarcEditor
                             onError={this.showError}
+                            setLoading={this.setLoading}
                             showToast={this.showToast}
                             showConfirm={this.showConfirm}
                             passFile={this.passFile}
@@ -61,6 +67,7 @@ class App extends React.Component {
                     </Tab>
                     <Tab eventKey="rstb" title="RSTB">
                         <RstbEditor
+                            setLoading={this.setLoading}
                             onError={this.showError}
                             showToast={this.showToast}
                             showConfirm={this.showConfirm}
@@ -68,6 +75,7 @@ class App extends React.Component {
                     </Tab>
                     <Tab eventKey="yaml" title="YAML">
                         <YamlEditor
+                            setLoading={this.setLoading}
                             onError={this.showError}
                             showToast={this.showToast}
                             showConfirm={this.showConfirm}
@@ -134,6 +142,10 @@ class App extends React.Component {
                     }}>
                     <Toast.Body>{this.state.toastMsg}</Toast.Body>
                 </Toast>
+                {this.state.loading && 
+                    <div className="loader">
+                        <Spinner animation="border" />
+                    </div>}
             </>
         );
     };

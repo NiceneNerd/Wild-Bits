@@ -23,10 +23,23 @@ import {
     Row,
     Tooltip
 } from "react-bootstrap";
+import { open, save } from "@tauri-apps/api/dialog";
 
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
 import React from "react";
+import { invoke } from "@tauri-apps/api/tauri";
+
+const FILTERS = [
+    {
+        extensions: ['srsizetable', 'rsizetable'],
+        name: "Resource size table"
+    },
+    {
+        extensions: ["*"],
+        name: "All files"
+    }
+];
 
 class RstbEditor extends React.Component {
     constructor(props) {
@@ -88,8 +101,8 @@ class RstbEditor extends React.Component {
 
     search = query => {
         this.setState({ showSearch: false }, async () => {
-            const hash = await pywebview.api.add_name(query);
-            const idx = this.state.rstb_files.indexOf(hash);
+            const hash = await invoke("add_name", { name: query });
+            const idx = this.state.rstb_files.indexOf(hash.toString());
             if (idx > -1) {
                 this.state.rstb_files[idx] = query;
                 this.state.rstb[query] = this.state.rstb[hash];
@@ -118,10 +131,6 @@ class RstbEditor extends React.Component {
     };
 
     open = data => {
-        if (data.error) {
-            this.props.onError(data.error);
-            return;
-        }
         const rstb_files = Object.keys(data.rstb).sort(file_sort);
         window.files = rstb_files;
         this.setState({ ...data, rstb_files: [], modified: false }, () =>
@@ -129,29 +138,49 @@ class RstbEditor extends React.Component {
         );
     };
 
-    open_rstb = () => {
-        pywebview.api.open_rstb().then(this.open);
+    open_rstb = async () => {
+        const file = await open({
+            filters: FILTERS
+        });
+        if (!file) return;
+        this.props.setLoading(true);
+        try {
+            const data = await invoke("open_rstb", { file });
+            this.open(data);
+        } catch (err) {
+            this.props.onError(err);
+        }
+        this.props.setLoading(false);
     };
 
-    save_rstb = async path => {
-        const res = await pywebview.api.save_rstb(path);
-        if (res.error && res.error.msg != "Cancelled") {
-            this.props.onError(res.error);
-            return;
+    save_rstb = async file => {
+        if (!file) {
+            file = await save({
+                filters: FILTERS
+            });
+            if (!file) return;
         }
-        this.props.showToast("File saved");
-        const rstb_files = this.state.rstb_files;
-        this.setState({ path: res.path, rstb_files: [], modified: false }, () =>
-            this.setState({ rstb_files })
-        );
+        this.props.setLoading(true);
+        try {
+            await invoke("save_rstb", { file });
+            this.props.showToast("File saved");
+            const rstb_files = this.state.rstb_files;
+            this.setState({ path: file, rstb_files: [], modified: false }, () =>
+                this.setState({ rstb_files })
+            );
+        } catch (err) {
+            this.props.onError(err);
+        }
+        this.props.setLoading(false);
     };
 
     add_entry = (path, size) => {
         size = parseInt(size);
         this.setState({ showAdd: false }, async () => {
-            const res = await pywebview.api.set_entry(path, size);
-            if (res.error) {
-                this.props.onError(res.error);
+            try {
+                await invoke("set_size", { path, size });
+            } catch (err) {
+                this.props.onError(err);
                 return;
             }
             const rstb_files = this.state.rstb_files;
@@ -167,12 +196,10 @@ class RstbEditor extends React.Component {
     edit_entry = size => {
         size = parseInt(size);
         this.setState({ showEdit: false }, async () => {
-            const res = await pywebview.api.set_entry(
-                this.state.editEntry,
-                size
-            );
-            if (res.error) {
-                this.props.onError(res.error);
+            try {
+                await invoke("set_size", { path: this.state.editEntry, size });
+            } catch (err) {
+                this.props.onError(err);
                 return;
             }
             const rstb = this.state.rstb;
@@ -193,14 +220,18 @@ class RstbEditor extends React.Component {
         });
     };
 
-    delete_entry = file => {
+    delete_entry = path => {
         this.props.showConfirm(
-            `Are you sure you want to delete the RSTB entry for <code>${file}</code>?`,
+            `Are you sure you want to delete the RSTB entry for <code>${path}</code>?`,
             async () => {
-                await pywebview.api.delete_entry(file);
+                try {
+                    await invoke("delete_entry", { path });
+                } catch(err) {
+                    this.props.onError(err);
+                }
                 const rstb = this.state.rstb;
-                delete rstb[file];
-                const rstb_files = this.state.rstb_files.filter(f => f != file);
+                delete rstb[path];
+                const rstb_files = this.state.rstb_files.filter(f => f != path);
                 this.setState({ rstb, rstb_files, modified: true }, () =>
                     this.props.showToast("RSTB entry deleted")
                 );
@@ -209,12 +240,27 @@ class RstbEditor extends React.Component {
     };
 
     export_rstb = async () => {
-        const res = await pywebview.api.export_rstb();
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        const file = await save({
+            filters: [
+                {
+                    extensions: ["json"],
+                    name: "JSON File"
+                },
+                {
+                    extensions: ["*"],
+                    name: "All Files"
+                }
+            ]
+        });
+        if (!file) return;
+        this.props.setLoading(true);
+        try {
+            await invoke("export_rstb", { file });
+            this.props.showToast("RSTB exported");
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.props.showToast("RSTB exported");
+        this.props.setLoading(false);
     };
 
     render = () => {
@@ -480,19 +526,20 @@ class AddRstbModal extends React.Component {
         super(props);
         this.state = {
             addPath: "",
-            addSize: 0,
-            guessed: false
+            addSize: 0
         };
         this.browse = this.browse.bind(this);
     }
 
     async browse() {
-        let res = await pywebview.api.browse_file_size();
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        const file = await open();
+        if (!file) return;
+        try {
+            const size = await invoke("calc_size", { file });
+            this.setState({ addSize: size });
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.setState({ addSize: res.size, guessed: res.guess });
     }
 
     render() {
@@ -535,11 +582,6 @@ class AddRstbModal extends React.Component {
                             <Col sm={10}>
                                 <InputGroup>
                                     <Form.Control
-                                        className={
-                                            this.state.guessed
-                                                ? "bg-warning"
-                                                : ""
-                                        }
                                         value={this.state.addSize}
                                         type="number"
                                         onChange={e =>
@@ -584,19 +626,20 @@ class EditRstbModal extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            size: 0,
-            guessed: false
+            size: 0
         };
         this.browse = this.browse.bind(this);
     }
 
     async browse() {
-        let res = await pywebview.api.browse_file_size();
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        const file = await open();
+        if (!file) return;
+        try {
+            const size = await invoke("calc_size", { file });
+            this.setState({ addSize: size });
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.setState({ size: res.size, guessed: res.guess });
     }
 
     render() {
@@ -620,11 +663,6 @@ class EditRstbModal extends React.Component {
                             <Col sm={10}>
                                 <InputGroup>
                                     <Form.Control
-                                        className={
-                                            this.state.guessed
-                                                ? "bg-warning"
-                                                : ""
-                                        }
                                         value={this.state.size}
                                         type="number"
                                         onChange={e =>

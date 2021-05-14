@@ -2940,9 +2940,9 @@ dependencies = [
 
 [[package]]
 name = "rstb"
-version = "0.1.5"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a42f4df337742da260458e36d4de63bdebe5f535e2402d77c2edb4efe3d146e"
+checksum = "3970c499a6ceee398c430691bff9555faa645c3a4bd54e585dc2d24b1c20ce36"
 dependencies = [
  "binread 2.1.1",
  "binwrite",
@@ -2955,6 +2955,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "thiserror",
  "yaz0 0.3.0",
 ]
 
@@ -4155,8 +4156,10 @@ version = "0.1.0"
 dependencies = [
  "aamp",
  "anyhow",
+ "backtrace",
  "botw-utils",
  "byml",
+ "crc",
  "msyt",
  "rstb",
  "sarc-rs",

@@ -43,7 +43,7 @@ body,
                 flex-wrap: nowrap;
 
                 .MuiSvgIcon-root {
-                  color: $body-color !important;
+                    color: $body-color !important;
                 }
             }
         }
@@ -59,6 +59,31 @@ body,
 body {
     font-family: "Roboto", "Droid Sans", "Helvetica Neue", "Open Sans",
         "Source Sans Pro", "Segoe UI", sans-serif;
+}
+
+.loader {
+    background-color: rgba($color: #000000, $alpha: 0.33);
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100vh;
+}
+
+.modal {
+    .modal-header {
+        border-bottom-color: map-get($map: $theme-colors, $key: "dark");
+    }
+
+    .modal-footer {
+        border-top-color: map-get($map: $theme-colors, $key: "dark");
+    }
 }
 
 .nothing {
@@ -152,9 +177,12 @@ body {
 
             .row {
                 margin: 0;
-    
+
                 &:nth-child(even) {
-                    background-color: map-get($map: $theme-colors, $key: "dark");
+                    background-color: map-get(
+                        $map: $theme-colors,
+                        $key: "dark"
+                    );
                 }
             }
         }

@@ -25,9 +25,9 @@ import {
     Tooltip
 } from "react-bootstrap";
 import { TreeItem, TreeView } from "@material-ui/lab";
-import { invoke } from '@tauri-apps/api/tauri'
 
 import React from "react";
+import { invoke } from "@tauri-apps/api/tauri";
 import { open } from "@tauri-apps/api/dialog";
 
 const SARC_EXTS = [
@@ -140,7 +140,7 @@ class SarcEditor extends React.Component {
 
     create_sarc = async () => {
         const res = await pywebview.api.create_sarc(
-            document.getElementById("new-be").checked,
+            document.getElementById("new-be1").checked,
             document.getElementById("new-align").value
         );
         this.setState(
@@ -459,13 +459,12 @@ class SarcEditor extends React.Component {
                             {this.state.sarc ? (
                                 <>
                                     <TreeView>
-                                        {Object.keys(
-                                            this.state.sarc
-                                        ).map(file =>
-                                            this.render_node(
-                                                file,
-                                                this.state.sarc[file]
-                                            )
+                                        {Object.keys(this.state.sarc).map(
+                                            file =>
+                                                this.render_node(
+                                                    file,
+                                                    this.state.sarc[file]
+                                                )
                                         )}
                                     </TreeView>
                                 </>
@@ -515,8 +514,8 @@ class SarcEditor extends React.Component {
                                             onClick={() =>
                                                 this.setState({
                                                     showRename: true,
-                                                    newName: this.state.selected
-                                                        .file
+                                                    newName:
+                                                        this.state.selected.file
                                                 })
                                             }>
                                             Rename
@@ -624,10 +623,30 @@ class SarcEditor extends React.Component {
                     </Modal.Header>
                     <Modal.Body>
                         <p>
-                            <big>Select new SARC options:</big>
+                            Select options for new SARC
                         </p>
                         <Form>
-                            <Form.Check label="Use big endian" id="new-be" />
+                            <Form.Group as={Row}>
+                                <Form.Label column sm={3}>
+                                    Endianness
+                                </Form.Label>
+                                <Col sm={9} className="mt-1">
+                                    <Form.Check
+                                        type="radio"
+                                        label="Big endian (Wii U)"
+                                        name="new-be"
+                                        id="new-be1"
+                                        value={true}
+                                    />
+                                    <Form.Check
+                                        type="radio"
+                                        label="Little endian (Switch)"
+                                        name="new-be"
+                                        id="new-be2"
+                                        value={false}
+                                    />
+                                </Col>
+                            </Form.Group>
                             <Form.Group as={Row}>
                                 <Form.Label column sm={3}>
                                     Alignment (advanced)
