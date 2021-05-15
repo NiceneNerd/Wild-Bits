@@ -25,10 +25,10 @@ import {
     Tooltip
 } from "react-bootstrap";
 import { TreeItem, TreeView } from "@material-ui/lab";
+import { open, save } from "@tauri-apps/api/dialog";
 
 import React from "react";
 import { invoke } from "@tauri-apps/api/tauri";
-import { open } from "@tauri-apps/api/dialog";
 
 const SARC_EXTS = [
     "sarc",
@@ -150,31 +150,36 @@ class SarcEditor extends React.Component {
     };
 
     open = data => {
-        try {
-            if (data.error) {
-                this.props.onError(data.error);
-                return;
-            }
-            this.setState({ ...data, modified: false });
-            this.file_infos = {};
-        } catch (err) {
-            this.props.onError(err);
-        }
+        this.setState({ ...data, modified: false });
+        this.file_infos = {};
     };
 
     open_sarc = async () => {
-        // pywebview.api.open_sarc().then(this.open);
-        console.log("hey");
-        open().then(str => console.log(str));
+        const file = await open();
+        if (!file) return;
+        this.props.setLoading(true);
+        try {
+            const res = await invoke("open_sarc", { file });
+            this.setState({ path: file }, () => this.open(res));
+        } catch(err) {
+            this.props.onError(err);
+        }
+        this.props.setLoading(false);
     };
 
-    save_sarc = async path => {
-        const res = await pywebview.api.save_sarc(path || "");
-        if (res.error) {
-            if (res.error.msg != "Cancelled") this.props.onError(res.error);
-            return;
+    save_sarc = async file => {
+        if (!file) {
+            file = await save();
+            if (!file) return;
         }
-        this.setState({ modified: false }, () => this.props.showToast("Saved"));
+        this.props.setLoading(true);
+        try {
+            await invoke("save_sarc", { file });
+            this.setState({ modified: false, path: file }, () => this.props.showToast("Saved"));
+        } catch(err) {
+            this.props.onError(err);
+        }
+        this.props.setLoading(false);
     };
 
     add_file = async () => {

@@ -1,4 +1,6 @@
 mod rstb;
+mod sarc;
+mod util;
 
 use std::{collections::HashMap, sync::Mutex};
 
@@ -64,6 +66,8 @@ fn main() {
             rstb::set_size,
             rstb::delete_entry,
             rstb::add_name,
+            sarc::open_sarc,
+            sarc::save_sarc
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
