@@ -139,10 +139,10 @@ class SarcEditor extends React.Component {
     };
 
     create_sarc = async () => {
-        const res = await pywebview.api.create_sarc(
-            document.getElementById("new-be1").checked,
-            document.getElementById("new-align").value
-        );
+        const res = await invoke("create_sarc", {
+            bigEndian: document.getElementById("new-be1").checked,
+            alignment: +document.getElementById("new-align").value
+        });
         this.setState(
             { ...res, modified: false, showNew: false },
             () => (this.file_infos = {})
@@ -161,7 +161,7 @@ class SarcEditor extends React.Component {
         try {
             const res = await invoke("open_sarc", { file });
             this.setState({ path: file }, () => this.open(res));
-        } catch(err) {
+        } catch (err) {
             this.props.onError(err);
         }
         this.props.setLoading(false);
@@ -175,8 +175,10 @@ class SarcEditor extends React.Component {
         this.props.setLoading(true);
         try {
             await invoke("save_sarc", { file });
-            this.setState({ modified: false, path: file }, () => this.props.showToast("Saved"));
-        } catch(err) {
+            this.setState({ modified: false, path: file }, () =>
+                this.props.showToast("Saved")
+            );
+        } catch (err) {
             this.props.onError(err);
         }
         this.props.setLoading(false);
@@ -184,71 +186,88 @@ class SarcEditor extends React.Component {
 
     add_file = async () => {
         const file = this.state.addFile.split(/[\\\/]/).slice(-1)[0];
-        const res = await pywebview.api.add_sarc_file(
-            this.state.addFile,
-            this.state.addPath
-        );
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        try {
+            const res = await invoke("add_file", {
+                file: this.state.addFile,
+                path: this.state.addPath
+            });
+            this.setState(
+                {
+                    sarc: res["sarc"],
+                    modded: res["modded"],
+                    modified: true,
+                    showAdd: false,
+                    addFile: "",
+                    addPath: ""
+                },
+                () => this.props.showToast(`Added ${file} to SARC`)
+            );
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.setState(
-            {
-                sarc: res[0],
-                modded: res[1],
-                modified: true,
-                showAdd: false,
-                addFile: "",
-                addPath: ""
-            },
-            () => this.props.showToast(`Added ${file} to SARC`)
-        );
     };
 
     update_folder = async () => {
-        const res = await pywebview.api.update_sarc_folder();
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        const folder = await open({ directory: true });
+        if (!folder) return;
+        this.props.setLoading(true);
+        try {
+            const res = await invoke("update_folder", { folder });
+            this.setState(
+                { sarc: res["sarc"], modded: res["modded"], modified: true },
+                () => this.props.showToast("SARC updated")
+            );
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.setState({ sarc: res[0], modded: res[1], modified: true }, () =>
-            this.props.showToast("SARC updated")
-        );
+        this.props.setLoading(false);
     };
 
     extract_sarc = async () => {
-        const res = await pywebview.api.extract_sarc();
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        const folder = await open({ directory: true });
+        if (!folder) return;
+        this.props.setLoading(true);
+        try {
+            await invoke("extract_sarc", { folder });
+            this.props.showToast("All files in SARC extracted");
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.props.showToast("All files in SARC extracted");
+        this.props.setLoading(false);
     };
 
     extract_file = async () => {
-        const res = await pywebview.api.extract_sarc_file(
-            this.state.selected.path
-        );
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        const file = await save();
+        if (!file) return;
+        try {
+            await invoke("extract_file", {
+                file,
+                path: this.state.selected.path
+            });
+            this.props.showToast(`${this.state.selected.path} extracted`);
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.props.showToast(`${this.state.selected.path} extracted`);
     };
 
     rename_file = async () => {
-        const res = await pywebview.api.rename_sarc_file(
-            this.state.selected.path,
-            this.state.newName
-        );
-        this.setState({ showRename: false });
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        try {
+            const res = await invoke("rename_file", {
+                path: this.state.selected.path,
+                newPath: this.state.newName
+            });
+            this.setState(
+                {
+                    sarc: res["sarc"],
+                    modded: res["modded"],
+                    modified: true,
+                    showRename: false
+                },
+                () => this.props.showToast(`Rename successful`)
+            );
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.setState({ sarc: res[0], modded: res[1], modified: true }, () =>
-            this.props.showToast(`Rename successful`)
-        );
     };
 
     delete_file = () => {
@@ -256,33 +275,38 @@ class SarcEditor extends React.Component {
         this.props.showConfirm(
             `Are you sure you want to delete ${file}?`,
             async () => {
-                const res = await pywebview.api.delete_sarc_file(
-                    this.state.selected.path
-                );
-                if (res.error) {
-                    this.props.onError(res.error);
-                    return;
+                try {
+                    const res = await invoke("delete_file", {
+                        path: this.state.selected.path
+                    });
+                    this.setState(
+                        {
+                            sarc: res["sarc"],
+                            modded: res["modded"],
+                            modified: true
+                        },
+                        () => this.props.showToast(`Deleted ${file}`)
+                    );
+                } catch (err) {
+                    this.props.onError(err);
                 }
-                this.setState(
-                    { sarc: res[0], modded: res[1], modified: true },
-                    () => this.props.showToast(`Deleted ${file}`)
-                );
             }
         );
     };
 
     replace_file = async () => {
-        const file = this.state.selected.file;
-        const res = await pywebview.api.replace_sarc_file(
-            this.state.selected.path
-        );
-        if (res.error) {
-            if (res.error.msg != "Cancelled") this.props.onError(res.error);
-            return;
+        const path = this.state.selected.file;
+        const file = await open();
+        if (!file) return;
+        try {
+            const res = await invoke("add_file", { file, path });
+            this.setState(
+                { sarc: res["sarc"], modded: res["modded"], modified: true },
+                () => this.props.showToast(`Replaced ${file}`)
+            );
+        } catch (err) {
+            this.props.onErrror(err);
         }
-        this.setState({ sarc: res[0], modded: res[1], modified: true }, () =>
-            this.props.showToast(`Replaced ${file}`)
-        );
     };
 
     edit_yaml = async () => {
@@ -295,19 +319,26 @@ class SarcEditor extends React.Component {
     };
 
     browse_add_file = async () => {
-        let file = await pywebview.api.browse();
+        const file = await open();
         if (file) {
             this.setState({ addFile: file });
         }
     };
 
-    handleSelect = async path => {
-        if (!this.file_infos.hasOwnProperty(path)) {
-            const res = await pywebview.api.get_file_info(path, this.state.be);
-            this.setState({ selected: { path, ...res } });
-            this.file_infos[path] = res;
+    handleSelect = async file => {
+        if (!this.file_infos.hasOwnProperty(file)) {
+            try {
+                const res = await invoke("get_file_meta", { file });
+                console.log(res);
+                this.setState({ selected: { path: file, ...res } });
+                this.file_infos[file] = res;
+            } catch (err) {
+                this.props.onError(err);
+            }
         } else {
-            this.setState({ selected: { path, ...this.file_infos[path] } });
+            this.setState({
+                selected: { path: file, ...this.file_infos[file] }
+            });
         }
     };
 
@@ -627,9 +658,7 @@ class SarcEditor extends React.Component {
                         <Modal.Title>New SARC</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
-                        <p>
-                            Select options for new SARC
-                        </p>
+                        <p>Select options for new SARC</p>
                         <Form>
                             <Form.Group as={Row}>
                                 <Form.Label column sm={3}>

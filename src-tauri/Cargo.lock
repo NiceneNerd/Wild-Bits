@@ -2994,9 +2994,9 @@ dependencies = [
 
 [[package]]
 name = "sarc-rs"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3439de4f2c0fc0d1509e77490a5f099c3108d9596e2557a317816b7764e13ea2"
+checksum = "e8cadebec83649d486aca9ae64224cd1326b07d1ecad24e90d280ddfc19b7aa2"
 dependencies = [
  "binread 2.1.1",
  "binwrite",
@@ -4160,6 +4160,8 @@ dependencies = [
  "botw-utils",
  "byml",
  "crc",
+ "glob",
+ "lazy_static",
  "msyt",
  "rstb",
  "sarc-rs",

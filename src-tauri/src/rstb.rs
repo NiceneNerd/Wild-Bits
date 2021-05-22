@@ -1,6 +1,6 @@
-use std::{path::Path, sync::Mutex};
+use std::path::Path;
 
-use crate::{AppError, AppState, Result, Rstb};
+use crate::{AppError, State, Result, Rstb};
 use rstb::{calc, Endian, ResourceSizeTable};
 use serde_json::{json, Value};
 use std::fs;
@@ -46,7 +46,7 @@ fn rstb_to_json(table: &ResourceSizeTable) -> Value {
 }
 
 #[tauri::command(async)]
-pub(crate) fn open_rstb(state: tauri::State<'_, Mutex<AppState>>, file: String) -> Result<Value> {
+pub(crate) fn open_rstb(state: State<'_>, file: String) -> Result<Value> {
     let table = parse_rstb(&file)?;
     let res = json!({
         "path": file,
@@ -58,7 +58,7 @@ pub(crate) fn open_rstb(state: tauri::State<'_, Mutex<AppState>>, file: String) 
 }
 
 #[tauri::command(async)]
-pub(crate) fn save_rstb(state: tauri::State<'_, Mutex<AppState>>, file: String) -> Result<()> {
+pub(crate) fn save_rstb(state: State<'_>, file: String) -> Result<()> {
     let state = state.lock().unwrap();
     let table = state.open_rstb.as_ref().unwrap();
     let path = std::path::PathBuf::from(&file);
@@ -74,7 +74,7 @@ pub(crate) fn save_rstb(state: tauri::State<'_, Mutex<AppState>>, file: String) 
 }
 
 #[tauri::command(async)]
-pub(crate) fn export_rstb(state: tauri::State<'_, Mutex<AppState>>, file: String) -> Result<()> {
+pub(crate) fn export_rstb(state: State<'_>, file: String) -> Result<()> {
     let state = state.lock().unwrap();
     let table = state.open_rstb.as_ref().unwrap();
     let text = table.table.to_text().unwrap();
@@ -83,7 +83,7 @@ pub(crate) fn export_rstb(state: tauri::State<'_, Mutex<AppState>>, file: String
 }
 
 #[tauri::command(async)]
-pub(crate) fn calc_size(state: tauri::State<'_, Mutex<AppState>>, file: String) -> Result<u32> {
+pub(crate) fn calc_size(state: State<'_>, file: String) -> Result<u32> {
     Ok(calc::calculate_size(
         file,
         state.lock().unwrap().open_rstb.as_ref().unwrap().endian,
@@ -95,7 +95,7 @@ pub(crate) fn calc_size(state: tauri::State<'_, Mutex<AppState>>, file: String) 
 
 #[tauri::command]
 pub(crate) fn set_size(
-    state: tauri::State<'_, Mutex<AppState>>,
+    state: State<'_>,
     path: String,
     size: u32,
 ) -> Result<()> {
@@ -109,7 +109,7 @@ pub(crate) fn set_size(
 }
 
 #[tauri::command]
-pub(crate) fn delete_entry(state: tauri::State<'_, Mutex<AppState>>, path: String) -> Result<()> {
+pub(crate) fn delete_entry(state: State<'_>, path: String) -> Result<()> {
     let mut state = state.lock().unwrap();
     let table = state.open_rstb.as_mut().unwrap();
     table.table.delete_entry(&path);
@@ -117,7 +117,7 @@ pub(crate) fn delete_entry(state: tauri::State<'_, Mutex<AppState>>, path: Strin
 }
 
 #[tauri::command]
-pub(crate) fn add_name(state: tauri::State<'_, Mutex<AppState>>, name: String) -> u32 {
+pub(crate) fn add_name(state: State<'_>, name: String) -> u32 {
     let hash = crc::crc32::checksum_ieee(name.as_bytes());
     state.lock().unwrap().name_table.insert(hash, name);
     hash
