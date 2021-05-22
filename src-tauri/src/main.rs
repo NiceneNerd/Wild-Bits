@@ -1,12 +1,13 @@
 mod rstb;
 mod sarc;
 mod util;
+mod yaml;
 
-use std::{cell::{Cell, Ref, RefCell}, collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, sync::Mutex};
 
-use botw_utils::hashes::StockHashTable;
 use ::rstb::ResourceSizeTable;
 use aamp::ParameterIO;
+use botw_utils::hashes::StockHashTable;
 use byml::Byml;
 use msyt::Msyt;
 use sarc_rs::Sarc;
@@ -21,7 +22,10 @@ struct AppError {
     backtrace: String,
 }
 
-impl<S> From<S> for AppError where S: AsRef<str> {
+impl<S> From<S> for AppError
+where
+    S: AsRef<str>,
+{
     fn from(message: S) -> Self {
         let trace = backtrace::Backtrace::new();
         AppError {
@@ -37,7 +41,7 @@ struct AppState<'a> {
     hash_table: Option<StockHashTable>,
     open_rstb: Option<Rstb>,
     name_table: HashMap<u32, String>,
-    open_yml: Option<YamlDoc>,
+    open_yml: Option<Yaml>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,8 +50,20 @@ struct Rstb {
     endian: ::rstb::Endian,
 }
 
-#[derive(Debug)]
-enum YamlDoc {
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) struct Yaml {
+    endian: YamlEndian,
+    doc: YamlDoc,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum YamlEndian {
+    Big,
+    Little,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum YamlDoc {
     Aamp(ParameterIO),
     Byml(Byml),
     Msbt(Msyt),
@@ -80,6 +96,9 @@ fn main() {
             sarc::extract_sarc,
             sarc::extract_file,
             sarc::rename_file,
+            sarc::open_sarc_yaml,
+            yaml::open_yaml,
+            yaml::save_yaml,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

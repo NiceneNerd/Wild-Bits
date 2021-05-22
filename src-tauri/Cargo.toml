@@ -25,6 +25,7 @@ msyt = { git = "https://github.com/NiceneNerd/msyt", rev = "f5d0c6e33cc8d12d66f1
 rstb = "0.2.2"
 sarc-rs = "0.1.5"
 serde_json = "1.0"
+serde_yaml = "0.8.17"
 serde = { version = "1.0", features = [ "derive" ] }
 yaz0 = "0.3.0"
 

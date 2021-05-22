@@ -3,8 +3,4 @@ import ReactDOM from "react-dom";
 import "./App.scss";
 import App from "./App.jsx";
 
-window.pywebview = {
-  api: {},
-};
-
 ReactDOM.render(<App />, document.getElementById("root"));

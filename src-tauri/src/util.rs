@@ -1,7 +1,6 @@
 use crate::{AppError, Result};
 use lazy_static::lazy_static;
 use std::{
-    borrow::{Borrow, Cow},
     collections::HashMap,
     io::{BufWriter, Cursor},
     path::Path,
@@ -22,7 +21,7 @@ lazy_static! {
     pub(crate) static ref DECOMP_MAP: Mutex<HashMap<usize, Vec<u8>>> = Mutex::new(HashMap::new());
 }
 
-pub(crate) fn decompress_if<'a>(data: &'a [u8]) -> Result<Cow<'a, [u8]>> {
+pub(crate) fn decompress_if<'a>(data: &'a [u8]) -> Result<&'a [u8]> {
     if &data[0..4] == b"Yaz0" {
         let decomp = decompress(data)?;
         let mut map = DECOMP_MAP.lock().unwrap();
@@ -31,10 +30,9 @@ pub(crate) fn decompress_if<'a>(data: &'a [u8]) -> Result<Cow<'a, [u8]>> {
             std::mem::transmute::<&'_ Vec<u8>, &'static Vec<u8>>(
                 map.get(&(data.as_ptr() as usize)).unwrap(),
             )
-            .into()
         })
     } else {
-        Ok(data.into())
+        Ok(data)
     }
 }
 

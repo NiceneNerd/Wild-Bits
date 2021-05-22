@@ -310,12 +310,12 @@ class SarcEditor extends React.Component {
     };
 
     edit_yaml = async () => {
-        const res = await pywebview.api.get_sarc_yaml(this.state.selected.path);
-        if (res.error) {
-            this.props.onError(res.error);
-            return;
+        try {
+            const res = await invoke("open_sarc_yaml", { path: this.state.selected.path });
+            this.props.passFile({...res, path: "SARC:" + this.state.selected.path });
+        } catch (err) {
+            this.props.onError(err);
         }
-        this.props.passFile(res);
     };
 
     browse_add_file = async () => {

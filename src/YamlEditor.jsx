@@ -21,16 +21,16 @@ import {
     Row,
     Tooltip
 } from "react-bootstrap";
+import { open, save } from "@tauri-apps/api/dialog";
 
 import AceEditor from "react-ace";
-import CutIcon from "./CutIcon.jsx";
-import React from "react";
-
-import "ace-builds/src-min-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/mode-yaml";
 import "ace-builds/src-noconflict/ext-language_tools";
 import "ace-builds/src-noconflict/theme-monokai";
-
+import "ace-builds/src-min-noconflict/ext-searchbox";
+import CutIcon from "./CutIcon.jsx";
+import React from "react";
+import { invoke } from "@tauri-apps/api/tauri";
 
 const YAML_TYPES = {
     AAMP: "aamp",
@@ -58,43 +58,49 @@ class YamlEditor extends React.Component {
     };
 
     open = data => {
-        if (data.error) {
-            this.props.onError(data.error);
-            return;
-        }
         this.setState({
             ...data,
             modified: false
         });
     };
 
-    open_yaml = () => {
-        pywebview.api.open_yaml().then(this.open);
+    open_yaml = async () => {
+        const file = await open();
+        if (!file) return;
+        this.props.setLoading(true);
+        try {
+            const res = await invoke("open_yaml", { file });
+            this.open({ ...res, path: file });
+        } catch (err) {
+            this.props.onError(err);
+        }
+        this.props.setLoading(false);
     };
 
-    save_yaml = async path => {
+    save_yaml = async file => {
+        if (!file) {
+            file = await save();
+            if (!file) return;
+        }
         try {
-            const res = await pywebview.api.save_yaml(
-                this.state.yaml,
-                this.state.type,
-                this.state.be,
-                path
-            );
-            if (res.error) {
-                this.props.onError(res.error);
-                return;
-            }
+            this.props.setLoading(true);
+            await invoke("save_yaml", {
+                text: this.state.yaml,
+                file
+            });
             this.setState({
                 modified: false,
-                path: path || this.state.path
+                path: file || this.state.path
             });
+            this.props.setLoading(false);
             this.props.showToast(
-                "File saved" + (path.startsWith("SARC:") ? " to SARC" : "")
+                "File saved" + (file.startsWith("SARC:") ? " to SARC" : "")
             );
-            if (path.startsWith("SARC:")) {
-                this.props.passMod(path.replace("SARC:", ""));
+            if (file.startsWith("SARC:")) {
+                this.props.passMod(file.replace("SARC:", ""));
             }
-        } catch (error) {
+        } catch (err) {
+            this.props.setLoading(false);
             this.props.onError(err);
         }
     };
@@ -318,7 +324,7 @@ class YamlEditor extends React.Component {
                 </Row>
             </Container>
         );
-    }
+    };
 }
 
 export default YamlEditor;

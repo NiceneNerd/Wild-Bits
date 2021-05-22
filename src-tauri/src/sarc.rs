@@ -3,16 +3,10 @@ use botw_utils::{
     extensions::{AAMP_EXTS, BYML_EXTS},
     hashes::{Platform, StockHashTable},
 };
-use lazy_static::lazy_static;
-use sarc_rs::{Endian, File, Sarc, SarcWriter};
+
+use sarc_rs::{Endian, Sarc, SarcWriter};
 use serde_json::{json, Map, Value};
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    fs,
-    path::{Path, PathBuf},
-    sync::{Mutex, MutexGuard},
-};
+use std::{borrow::Cow, collections::HashSet, fs, path::PathBuf, sync::Mutex};
 
 fn create_tree(
     sarc: &Sarc,
@@ -208,9 +202,10 @@ pub(crate) fn rename_file(state: State<'_>, path: String, new_path: String) -> R
 
 #[tauri::command]
 pub(crate) fn open_sarc_yaml(state: State<'_>, path: String) -> Result<Value> {
-    let mut state_lock = state.lock().unwrap();
-    let data = open_nested_file(state_lock.open_sarc.as_ref().unwrap(), &path)?;
-    Ok(json!({}))
+    let state_lock = state.lock().unwrap();
+    let data = open_nested_file(state_lock.open_sarc.as_ref().unwrap(), &path)?.to_vec();
+    drop(state_lock);
+    crate::yaml::parse_yaml(state, &data)
 }
 
 pub(crate) fn parse_sarc(state: State<'_>, data: Vec<u8>) -> Result<Value> {
@@ -228,10 +223,11 @@ pub(crate) fn parse_sarc(state: State<'_>, data: Vec<u8>) -> Result<Value> {
     });
     state.lock().unwrap().hash_table = Some(hash_table);
     state.lock().unwrap().open_sarc = Some(sarc);
+    util::DECOMP_MAP.lock().unwrap().clear();
     Ok(res)
 }
 
-fn modify_sarc<F: FnOnce(&mut SarcWriter) -> ()>(
+pub(crate) fn modify_sarc<F: FnOnce(&mut SarcWriter) -> ()>(
     state: State<'_>,
     path: &str,
     task: F,
