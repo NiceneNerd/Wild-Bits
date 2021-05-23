@@ -261,13 +261,14 @@ fn get_parent_sarc<'a, 'b>(sarc: &'a Sarc<'a>, file: &'b str) -> Result<Cow<'a, 
         Ok(Cow::Borrowed(sarc))
     } else {
         let data = open_nested_file(sarc, levels[..levels.len() - 1].join("//").as_str())?;
-        Ok(Cow::Owned(Sarc::new(data).map_err(|_| {
-            AppError::from("Failed to get parent SARC")
-        })?))
+        Ok(Cow::Owned(Sarc::new(util::decompress_if(data)?).map_err(
+            |e| AppError::from(format!("Failed to get parent SARC: {:?}", e)),
+        )?))
     }
 }
 
 fn open_nested_file<'a, 'b>(sarc: &'a Sarc, file: &'b str) -> Result<&'a [u8]> {
+    let file = file.trim_start_matches("SARC:");
     let levels: Vec<&str> = file.split("//").collect();
     if levels.len() == 1 {
         Ok(sarc

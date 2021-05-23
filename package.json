@@ -1,6 +1,6 @@
 {
-  "name": "wildbits-rs",
-  "version": "0.1.0",
+  "name": "wildbits",
+  "version": "2.0.0b1",
   "private": true,
   "dependencies": {
     "@babel/runtime": "^7.6.2",

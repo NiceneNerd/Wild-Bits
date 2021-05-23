@@ -1,10 +1,10 @@
 [package]
 name = "wildbits"
-version = "0.1.0"
-description = "A Tauri App"
-authors = [ "you" ]
-license = ""
-repository = ""
+version = "2.0.0-beta1"
+description = "Simple editor for BOTW file formats"
+authors = ["Caleb Smith <email@calebdixonsmith.top>"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/NiceneNerd/wildbits-rs"
 default-run = "wildbits"
 edition = "2018"
 build = "src/build.rs"
