@@ -22,6 +22,7 @@ class App extends React.Component {
         window.setTab = this.setTab;
         this.yamlRef = React.createRef();
         this.sarcRef = React.createRef();
+        document.oncontextmenu = () => false;
     }
 
     setTab = tab => {

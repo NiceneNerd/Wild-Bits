@@ -1,16 +1,15 @@
-use std::{fs, io::Cursor, sync::Mutex};
+use std::{fs, sync::Mutex};
 
-use aamp::{names::NameTable, ParameterIO};
-use byml::Byml;
 use lazy_static::lazy_static;
 use msyt::Msyt;
+use roead::{aamp::{ParameterIO, names::NameTable}, byml::Byml, Endian};
 use serde_json::{json, Value};
 use serde_yaml;
 
 use crate::{util, AppError, Result, State, Yaml, YamlDoc, YamlEndian};
 
 lazy_static! {
-    static ref NAME_TABLE: Mutex<NameTable> = Mutex::new(aamp::names::get_default_name_table());
+    static ref NAME_TABLE: Mutex<NameTable> = Mutex::new(NameTable::new(true));
 }
 
 fn init_name_table() {
@@ -35,7 +34,7 @@ pub(crate) fn save_yaml(state: State<'_>, text: String, file: String) -> Result<
     yaml.update(&text)?;
     let mut data = yaml.to_binary();
     if util::should_compress(&file) {
-        data = util::compress(data)?; 
+        data = util::compress(data);
     }
     if file.starts_with("SARC:") {
         let path = file.trim_end_matches("/").trim_start_matches("SARC:");
@@ -43,7 +42,7 @@ pub(crate) fn save_yaml(state: State<'_>, text: String, file: String) -> Result<
         let filename = *levels.last().unwrap();
         drop(state_lock);
         crate::sarc::modify_sarc(state, &path, |sw| {
-            sw.files.insert(filename.to_owned(), data);
+            sw.add_file(filename, data);
         })
     } else {
         fs::write(&file, data).map_err(|_| AppError::from("Failed to save file"))?;
@@ -52,8 +51,8 @@ pub(crate) fn save_yaml(state: State<'_>, text: String, file: String) -> Result<
 }
 
 pub(crate) fn parse_yaml(state: State<'_>, data: &[u8]) -> Result<Value> {
-    let data = util::decompress_if(data)?;
-    let yaml = Yaml::from_binary(data)?;
+    let data = util::decompress_if(data).map_err(|_| AppError::from("Failed to decompress"))?;
+    let yaml = Yaml::from_binary(&data)?;
     let y_type = match &yaml.doc {
         YamlDoc::Aamp(_) => {
             init_name_table();
@@ -74,16 +73,11 @@ pub(crate) fn parse_yaml(state: State<'_>, data: &[u8]) -> Result<Value> {
 impl Yaml {
     pub(crate) fn to_binary(&self) -> Vec<u8> {
         match &self.doc {
-            YamlDoc::Aamp(pio) => pio.to_binary().unwrap(),
-            YamlDoc::Byml(byml) => byml
-                .to_binary(
-                    match self.endian {
-                        YamlEndian::Big => byml::Endian::Big,
-                        YamlEndian::Little => byml::Endian::Little,
-                    },
-                    2,
-                )
-                .unwrap(),
+            YamlDoc::Aamp(pio) => pio.to_binary(),
+            YamlDoc::Byml(byml) => byml.to_binary(match self.endian {
+                YamlEndian::Big => Endian::Big,
+                YamlEndian::Little => Endian::Little,
+            }),
             YamlDoc::Msbt(msbt) => msbt
                 .clone()
                 .into_msbt_bytes(match self.endian {
@@ -96,16 +90,16 @@ impl Yaml {
 
     pub(crate) fn to_text(&self) -> String {
         match &self.doc {
-            YamlDoc::Aamp(pio) => pio.to_text().unwrap(),
-            YamlDoc::Byml(byml) => byml.to_text().unwrap(),
+            YamlDoc::Aamp(pio) => pio.to_text(),
+            YamlDoc::Byml(byml) => byml.to_text(),
             YamlDoc::Msbt(msbt) => serde_yaml::to_string(msbt).unwrap(),
         }
     }
 
     pub(crate) fn from_binary(data: &[u8]) -> Result<Self> {
-        let data = util::decompress_if(data)?;
+        let data = util::decompress_if(data).map_err(|_| AppError::from("Failed to parse AAMP"))?;
         if &data[0..4] == b"AAMP" {
-            let pio = ParameterIO::from_binary(&mut Cursor::new(&data))
+            let pio = ParameterIO::from_binary(&data)
                 .map_err(|_| AppError::from("Failed to parse AAMP"))?;
             Ok(Self {
                 doc: YamlDoc::Aamp(pio),

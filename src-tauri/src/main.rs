@@ -1,3 +1,8 @@
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+  )]
+  
 mod rstb;
 mod sarc;
 mod util;
@@ -6,11 +11,9 @@ mod yaml;
 use std::{collections::HashMap, sync::Mutex};
 
 use ::rstb::ResourceSizeTable;
-use aamp::ParameterIO;
 use botw_utils::hashes::StockHashTable;
-use byml::Byml;
 use msyt::Msyt;
-use sarc_rs::Sarc;
+use roead::{aamp::ParameterIO, byml::Byml, sarc::Sarc};
 use serde::Serialize;
 
 type Result<T> = std::result::Result<T, AppError>;

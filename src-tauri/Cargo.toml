@@ -10,28 +10,22 @@ edition = "2018"
 build = "src/build.rs"
 
 [build-dependencies]
-tauri-build = { version = "1.0.0-beta.0" }
+tauri-build = { version = "1.0.0-beta.4" }
 
 [dependencies]
 anyhow = "1.0.40"
-aamp = "0.1.6"
 backtrace = "0.3.59"
 botw-utils = "0.3.1"
-byml = "0.1.4"
 crc = "1.8.1"
 glob = "0.3.0"
 lazy_static = "1.4.0"
 msyt = { git = "https://github.com/NiceneNerd/msyt", rev = "f5d0c6e33cc8d12d66f1dd0d329ecf00bcbb9c51" }
 rstb = "0.2.2"
-sarc-rs = "0.1.5"
+roead = { git = "https://github.com/NiceneNerd/roead", rev = "63ac0eb0f738aab41b0b9cd67807fac3addac799" }
 serde_json = "1.0"
 serde_yaml = "0.8.17"
 serde = { version = "1.0", features = [ "derive" ] }
-yaz0 = "0.3.0"
-
-[dependencies.tauri]
-version = "1.0.0-beta"
-features = ["api-all"]
+tauri = { version = "1.0.0-beta.8", features = ["api-all"] }
 
 [features]
 default = [ "custom-protocol" ]

@@ -4,9 +4,18 @@ use botw_utils::{
     hashes::{Platform, StockHashTable},
 };
 
-use sarc_rs::{Endian, Sarc, SarcWriter};
+use roead::{
+    sarc::{Sarc, SarcWriter},
+    Endian,
+};
 use serde_json::{json, Map, Value};
-use std::{borrow::Cow, collections::HashSet, fs, path::PathBuf, sync::Mutex};
+use std::{
+    borrow::{Borrow, Cow},
+    collections::HashSet,
+    fs,
+    path::PathBuf,
+    sync::Mutex,
+};
 
 fn create_tree(
     sarc: &Sarc,
@@ -14,23 +23,24 @@ fn create_tree(
 ) -> Result<(Map<String, Value>, HashSet<String>)> {
     let mut modified_files: HashSet<String> = HashSet::new();
     let mut tree: Map<String, Value> = Map::new();
-    let start_slash = sarc.files().any(|f| f.name.unwrap().starts_with('/'));
+    let start_slash = sarc.files().any(|f| f.name().unwrap().starts_with('/'));
     for file in sarc.files() {
-        if let Some(name) = file.name {
+        if let Some(name) = file.name() {
             let name = name.trim_start_matches('/');
-            if hash_table.is_file_modded(&name.replace(".s", "."), &file.data, true) {
+            if hash_table.is_file_modded(&name.replace(".s", "."), &file.data(), true) {
                 modified_files.insert(name.to_string());
             }
             let mut path_parts: Vec<String> = name.split('/').map(|p| p.to_owned()).collect();
             if start_slash {
                 path_parts.first_mut().unwrap().insert(0, '/');
             }
-            let magic = &file.data[0..4];
+            let magic = &file.data()[0..4];
             let mut nest_tree: Map<String, Value> = Map::new();
-            if magic == b"SARC" || (magic == b"Yaz0" && &file.data[0x11..0x15] == b"SARC") {
-                let data = util::decompress_if(file.data)?;
+            if magic == b"SARC" || (magic == b"Yaz0" && &file.data()[0x11..0x15] == b"SARC") {
+                let data = util::decompress_if(file.data())
+                    .map_err(|_| AppError::from("Failed to decompress"))?;
                 let nest_sarc =
-                    Sarc::new(data).map_err(|_| AppError::from("Could not read nested SARC"))?;
+                    Sarc::read(data).map_err(|_| AppError::from("Could not read nested SARC"))?;
                 let result = create_tree(&nest_sarc, hash_table)?;
                 nest_tree.extend(result.0.iter().map(|(s, v)| (s.to_owned(), v.clone())));
                 modified_files.extend(result.1);
@@ -52,32 +62,30 @@ fn create_tree(
 pub(crate) fn open_sarc(state: State<'_>, file: String) -> Result<Value> {
     let mut data = fs::read(&file).map_err(|_| AppError::from("Failed to read file"))?;
     if &data[0..4] == b"Yaz0" {
-        data = util::decompress(&data)?;
+        data = util::decompress(&data).map_err(|_| AppError::from("Failed to decompress"))?;
     }
     parse_sarc(state, data)
 }
 
 #[tauri::command]
-pub(crate) fn create_sarc(state: State<'_>, big_endian: bool, alignment: usize) -> Result<Value> {
+pub(crate) fn create_sarc(state: State<'_>, big_endian: bool, alignment: u8) -> Result<Value> {
     let mut sarc = SarcWriter::new(if big_endian {
         Endian::Big
     } else {
         Endian::Little
     });
-    sarc.set_min_alignment(alignment).unwrap();
-    parse_sarc(state, sarc.write_to_bytes().unwrap())
+    sarc.set_alignment(alignment);
+    parse_sarc(state, sarc.to_binary())
 }
 
 #[tauri::command(async)]
 pub(crate) fn save_sarc(state: State<'_>, file: String) -> Result<()> {
     let file = PathBuf::from(file);
-    let mut writer = SarcWriter::from_sarc(state.lock().unwrap().open_sarc.as_ref().unwrap());
-    let data = writer
-        .write_to_bytes()
-        .map_err(|_| AppError::from("Failed to build SARC"))?;
+    let mut writer = SarcWriter::from(state.lock().unwrap().open_sarc.as_ref().unwrap());
+    let data = writer.to_binary();
     fs::write(&file, {
         if util::should_compress(&file) {
-            util::compress(&data)?
+            util::compress(&data)
         } else {
             data
         }
@@ -107,8 +115,8 @@ pub(crate) fn get_file_meta(
             },
             true,
         ),
-        "modified": state.hash_table.as_ref().unwrap().is_file_modded(&file.replace(".s", "."), data, true),
         "size": data.len(),
+        "modified": state.hash_table.as_ref().unwrap().is_file_modded(&file.replace(".s", "."), data, true),
         "is_yaml": AAMP_EXTS.contains(&ext) || BYML_EXTS.contains(&ext) || ext == "msbt"
     }))
 }
@@ -120,7 +128,7 @@ pub(crate) fn add_file(state: State<'_>, file: String, path: String) -> Result<V
     let filename = *levels.last().unwrap();
     let data = fs::read(&file).map_err(|_| AppError::from("Failed to read file"))?;
     modify_sarc(state, &path, |sw| {
-        sw.files.insert(filename.to_owned(), data);
+        sw.add_file(filename, data);
     })
 }
 
@@ -130,26 +138,24 @@ pub(crate) fn delete_file(state: State<'_>, path: String) -> Result<Value> {
     let levels: Vec<&str> = path.split("//").collect();
     let filename = *levels.last().unwrap();
     modify_sarc(state, &path, |sw| {
-        sw.files.remove(filename);
+        sw.delete_file(filename);
     })
 }
 
 #[tauri::command(async)]
 pub(crate) fn update_folder(state: State<'_>, folder: String) -> Result<Value> {
     let folder = PathBuf::from(&folder);
-    let mut new_sarc = SarcWriter::from_sarc(state.lock().unwrap().open_sarc.as_ref().unwrap());
+    let mut new_sarc = SarcWriter::from(state.lock().unwrap().open_sarc.as_ref().unwrap());
     glob::glob(folder.join("**/*.*").as_os_str().to_str().unwrap())
         .unwrap()
         .filter_map(|f| f.ok())
         .try_for_each(|file| -> Result<()> {
             let path = file.strip_prefix(&folder).unwrap();
             let data = fs::read(&file).map_err(|_| AppError::from("Failed to read file"))?;
-            new_sarc
-                .files
-                .insert(path.to_str().unwrap().replace("\\", "/"), data);
+            new_sarc.add_file(&path.to_str().unwrap().replace("\\", "/"), data);
             Ok(())
         })?;
-    parse_sarc(state, new_sarc.write_to_bytes().unwrap())
+    parse_sarc(state, new_sarc.to_binary())
 }
 
 #[tauri::command(async)]
@@ -163,10 +169,10 @@ pub(crate) fn extract_sarc(state: State<'_>, folder: String) -> Result<()> {
         .unwrap()
         .files()
         .try_for_each(|file| -> Result<()> {
-            let dest = folder.join(file.name.unwrap());
+            let dest = folder.join(file.name().unwrap());
             fs::create_dir_all(dest.parent().unwrap())
                 .map_err(|_| AppError::from("Failed to create folder"))?;
-            fs::write(folder.join(file.name.unwrap()), file.data)
+            fs::write(folder.join(file.name().unwrap()), file.data())
                 .map_err(|e| AppError::from(format!("Failed to write file: {:?}", e)))?;
             Ok(())
         })
@@ -185,10 +191,18 @@ pub(crate) fn rename_file(state: State<'_>, path: String, new_path: String) -> R
     let path = path.trim_end_matches("/").replace("SARC:", "");
     let levels: Vec<&str> = path.split("//").collect();
     let filename = *levels.last().unwrap();
+    let state_lock = state.lock().unwrap();
+    let data = state_lock
+        .open_sarc
+        .as_ref()
+        .unwrap()
+        .get_file_data(filename)
+        .unwrap()
+        .to_owned();
+    drop(state_lock);
     modify_sarc(state, &path, |sw| {
-        let data = sw.files.remove(filename).unwrap();
-        sw.files.insert(
-            PathBuf::from(filename)
+        sw.add_file(
+            &PathBuf::from(filename)
                 .parent()
                 .unwrap()
                 .join(new_path)
@@ -209,7 +223,7 @@ pub(crate) fn open_sarc_yaml(state: State<'_>, path: String) -> Result<Value> {
 }
 
 pub(crate) fn parse_sarc(state: State<'_>, data: Vec<u8>) -> Result<Value> {
-    let sarc: Sarc = Sarc::new(data).map_err(|_| AppError::from("Could not read SARC"))?;
+    let sarc: Sarc = Sarc::read(data).map_err(|_| AppError::from("Could not read SARC"))?;
     let hash_table = StockHashTable::new(&match sarc.endian() {
         Endian::Big => Platform::WiiU,
         Endian::Little => Platform::Switch,
@@ -235,24 +249,24 @@ pub(crate) fn modify_sarc<F: FnOnce(&mut SarcWriter) -> ()>(
     let state_lock = state.lock().unwrap();
     let open_sarc = state_lock.open_sarc.as_ref().unwrap();
     let mut parent = get_parent_sarc(open_sarc, &path)?;
-    let mut new_sarc = SarcWriter::from_sarc(&parent);
+    let mut new_sarc = SarcWriter::from(parent.borrow());
     task(&mut new_sarc);
     while Cow::Borrowed(open_sarc) != parent {
-        let child = new_sarc.write_to_bytes().unwrap();
+        let child = new_sarc.to_binary();
         let sub_path: &str = path[..path.rfind("//").unwrap()].trim_end_matches("/");
         parent = get_parent_sarc(open_sarc, &sub_path)?;
-        new_sarc = SarcWriter::from_sarc(&parent);
-        new_sarc.files.insert(
-            sub_path.to_owned(),
+        new_sarc = SarcWriter::from(parent.borrow());
+        new_sarc.add_file(
+            &sub_path.to_owned(),
             if util::should_compress(sub_path) {
-                util::compress(child).unwrap()
+                util::compress(child)
             } else {
                 child
             },
         );
     }
     drop(state_lock);
-    parse_sarc(state, new_sarc.write_to_bytes().unwrap())
+    parse_sarc(state, new_sarc.to_binary())
 }
 
 fn get_parent_sarc<'a, 'b>(sarc: &'a Sarc<'a>, file: &'b str) -> Result<Cow<'a, Sarc<'a>>> {
@@ -261,26 +275,31 @@ fn get_parent_sarc<'a, 'b>(sarc: &'a Sarc<'a>, file: &'b str) -> Result<Cow<'a, 
         Ok(Cow::Borrowed(sarc))
     } else {
         let data = open_nested_file(sarc, levels[..levels.len() - 1].join("//").as_str())?;
-        Ok(Cow::Owned(Sarc::new(util::decompress_if(data)?).map_err(
-            |e| AppError::from(format!("Failed to get parent SARC: {:?}", e)),
-        )?))
+        Ok(Cow::Owned(
+            Sarc::read(
+                util::decompress_if(data).map_err(|_| AppError::from("Failed to decompress"))?,
+            )
+            .map_err(|e| AppError::from(format!("Failed to get parent SARC: {:?}", e)))?,
+        ))
     }
 }
 
-fn open_nested_file<'a, 'b>(sarc: &'a Sarc, file: &'b str) -> Result<&'a [u8]> {
+fn open_nested_file<'a, 'b>(sarc: &'a Sarc, file: &'b str) -> Result<Cow<'a, [u8]>> {
     let file = file.trim_start_matches("SARC:");
     let levels: Vec<&str> = file.split("//").collect();
     if levels.len() == 1 {
-        Ok(sarc
-            .get_file(file.trim_end_matches('/'))
-            .unwrap()
-            .ok_or_else(|| AppError::from(format!("File {} not found", file)))?
-            .data)
+        Ok(Cow::from(
+            sarc.get_file_data(file.trim_end_matches('/'))
+                .ok_or_else(|| AppError::from("File doesn't exist"))?,
+        ))
     } else {
         let parent = levels[0..levels.len() - 1].join("//");
         let next_data = open_nested_file(sarc, parent.as_str())?;
-        let next_sarc = Sarc::new(util::decompress_if(next_data)?)
-            .map_err(|e| AppError::from(format!("Failed to parse SARC: {:?}", e)))?;
+        let next_sarc = Sarc::read(
+            util::decompress_if(next_data.as_ref())
+                .map_err(|_| AppError::from("Failed to decompress"))?,
+        )
+        .map_err(|e| AppError::from(format!("Failed to parse SARC: {:?}", e)))?;
         let final_data = open_nested_file(
             unsafe {
                 /* Force the compiler to accept that references to file data
@@ -289,7 +308,12 @@ fn open_nested_file<'a, 'b>(sarc: &'a Sarc, file: &'b str) -> Result<&'a [u8]> {
             },
             &levels[1..].join("//"),
         )?;
-        Ok(final_data)
+        if &next_data[0..4] == b"Yaz0" {
+            let final_data = Vec::from(final_data);
+            Ok(final_data.into())
+        } else {
+            Ok(final_data)
+        }
     }
 }
 

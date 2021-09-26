@@ -30,6 +30,7 @@ import { FixedSizeList as List } from "react-window";
 import React from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 
+
 const FILTERS = [
     {
         extensions: ['srsizetable', 'rsizetable'],
