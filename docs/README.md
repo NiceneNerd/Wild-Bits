@@ -90,8 +90,8 @@ Building from source requires, in *addition* to the general prerequisites:
     -   pywebview ~= 3.2
 
 To build from source, you will first need to prepare the webpack bundle. Enter
-the `bcml/assets` folder, run `npm install` to collect dependencies, and then
+the `wildbits/assets` folder, run `npm install` to collect dependencies, and then
 run `npm build` or `npm test`.
 
 Finally, back at the root folder, you can install using
-`python setup.py install`. You can also run without installing by using `python -m bcml`.
+`python setup.py install`. You can also run without installing by using `python -m wildbits`.
