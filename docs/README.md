@@ -76,6 +76,8 @@ autocomplete is also provided.
 With some system configurations, the `wildbits` command does not work properly,
 and the app must be launched with `python -m wildbits`.
 
+**Note for Linux white screen bug**: Try setting the environmental variable: `QTWEBENGINE_DISABLE_SANDBOX=1`.
+
 ## Building from Source
 
 Building from source requires, in *addition* to the general prerequisites:
