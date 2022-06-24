@@ -91,7 +91,7 @@ Building from source requires, in *addition* to the general prerequisites:
 
 To build from source, you will first need to prepare the webpack bundle. Enter
 the `wildbits/assets` folder, run `npm install` to collect dependencies, and then
-run `npm build` or `npm test`.
+run `npm run build` or `npm run test`.
 
 Finally, back at the root folder, you can install using
 `python setup.py install`. You can also run without installing by using `python -m wildbits`.
