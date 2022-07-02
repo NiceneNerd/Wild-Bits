@@ -30,10 +30,9 @@ import { FixedSizeList as List } from "react-window";
 import React from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 
-
 const FILTERS = [
     {
-        extensions: ['srsizetable', 'rsizetable'],
+        extensions: ["srsizetable", "rsizetable"],
         name: "Resource size table"
     },
     {
@@ -54,7 +53,8 @@ class RstbEditor extends React.Component {
             showAdd: false,
             showEdit: false,
             showSearch: false,
-            editEntry: ""
+            editEntry: "",
+            prevSize: 0
         };
         window.openRstb = this.open;
     }
@@ -65,7 +65,10 @@ class RstbEditor extends React.Component {
             <Row style={style}>
                 <Col
                     className="flex-grow-1"
-                    style={{ overflowX: "hidden", textOverflow: "ellipsis" }}>
+                    style={{
+                        overflowX: "hidden",
+                        textOverflow: "ellipsis"
+                    }}>
                     {isNaN(file)
                         ? file
                         : `Unknown file 0x${parseInt(file).toString(16)}`}
@@ -81,7 +84,8 @@ class RstbEditor extends React.Component {
                                 onClick={() =>
                                     this.setState({
                                         showEdit: true,
-                                        editEntry: file
+                                        editEntry: file,
+                                        prevSize: this.state.rstb[file]
                                     })
                                 }>
                                 <Edit />
@@ -124,10 +128,12 @@ class RstbEditor extends React.Component {
 
     update_filter = () => {
         const filter = document.getElementById("rstb-filter").value;
-        this.setState({
-            rstb_files: Object.keys(this.state.rstb)
-                .filter(key => key.includes(filter))
-                .sort(file_sort)
+        this.setState({ rstb_files: [] }, () => {
+            this.setState({
+                rstb_files: Object.keys(this.state.rstb)
+                    .filter(key => key.includes(filter))
+                    .sort(file_sort)
+            });
         });
     };
 
@@ -227,7 +233,7 @@ class RstbEditor extends React.Component {
             async () => {
                 try {
                     await invoke("delete_entry", { path });
-                } catch(err) {
+                } catch (err) {
                     this.props.onError(err);
                 }
                 const rstb = this.state.rstb;
@@ -455,6 +461,7 @@ class RstbEditor extends React.Component {
                 />
                 <EditRstbModal
                     show={this.state.showEdit}
+                    prevSize={this.state.prevSize}
                     entry={this.state.editEntry}
                     onClose={() => this.setState({ showEdit: false })}
                     onError={this.props.onError}
@@ -630,6 +637,14 @@ class EditRstbModal extends React.Component {
             size: 0
         };
         this.browse = this.browse.bind(this);
+    }
+
+    componentDidUpdate(prevProps) {
+        if (!prevProps.show && this.props.show) {
+            this.setState({
+                size: this.props.prevSize
+            });
+        }
     }
 
     async browse() {

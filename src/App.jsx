@@ -22,7 +22,7 @@ class App extends React.Component {
         window.setTab = this.setTab;
         this.yamlRef = React.createRef();
         this.sarcRef = React.createRef();
-        document.oncontextmenu = () => false;
+        // document.oncontextmenu = () => false;
     }
 
     setTab = tab => {
@@ -31,7 +31,7 @@ class App extends React.Component {
 
     setLoading = yea => {
         this.setState({ loading: yea });
-    }
+    };
 
     showError = error => {
         this.setState({ showError: true, errorMsg: error.message });
@@ -143,10 +143,11 @@ class App extends React.Component {
                     }}>
                     <Toast.Body>{this.state.toastMsg}</Toast.Body>
                 </Toast>
-                {this.state.loading && 
+                {this.state.loading && (
                     <div className="loader">
                         <Spinner animation="border" />
-                    </div>}
+                    </div>
+                )}
             </>
         );
     };
