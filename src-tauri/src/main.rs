@@ -1,20 +1,20 @@
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
-  )]
-  
+)]
+
 mod rstb;
 mod sarc;
 mod util;
 mod yaml;
 
-use std::{collections::HashMap, sync::Mutex};
-
 use ::rstb::ResourceSizeTable;
-use botw_utils::hashes::StockHashTable;
+use botw_utils::{extensions::*, hashes::StockHashTable};
 use msyt::Msyt;
 use roead::{aamp::ParameterIO, byml::Byml, sarc::Sarc};
 use serde::Serialize;
+use serde_json::{json, Value};
+use std::{collections::HashMap, sync::Mutex};
 
 type Result<T> = std::result::Result<T, AppError>;
 type State<'a> = tauri::State<'a, Mutex<AppState<'static>>>;
@@ -72,6 +72,49 @@ pub(crate) enum YamlDoc {
     Msbt(Msyt),
 }
 
+#[tauri::command]
+pub(crate) fn has_args() -> bool {
+    std::env::args().filter(|arg| arg == "--debug").count() > 1
+}
+
+#[tauri::command(async)]
+pub(crate) fn open_args(state: State<'_>) -> Value {
+    let args = std::env::args();
+    if let Some(file) = args.filter(|f| f != "--debug").nth(1) {
+        if let Some(ext) = std::path::Path::new(&file)
+            .extension()
+            .and_then(|ext| ext.to_str())
+        {
+            if AAMP_EXTS.contains(&ext) || BYML_EXTS.contains(&ext) || ext == "msbt" {
+                if let Ok(yaml) = yaml::open_yaml(state, file.clone()) {
+                    return json!({
+                        "type": "yaml",
+                        "data": yaml,
+                        "path": file,
+                    });
+                }
+            } else if SARC_EXTS.contains(&ext) {
+                if let Ok(sarc) = sarc::open_sarc(state, file.clone()) {
+                    return json!({
+                        "type": "sarc",
+                        "data": sarc,
+                        "path": file,
+                    });
+                }
+            } else if ext.ends_with("sizetable") {
+                if let Ok(rstb) = rstb::open_rstb(state, file.clone()) {
+                    return json!({
+                        "type": "rstb",
+                        "data": rstb,
+                        "path": file,
+                    });
+                }
+            }
+        }
+    }
+    Default::default()
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(Mutex::new(AppState {
@@ -102,6 +145,8 @@ fn main() {
             sarc::open_sarc_yaml,
             yaml::open_yaml,
             yaml::save_yaml,
+            has_args,
+            open_args
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

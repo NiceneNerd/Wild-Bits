@@ -1,4 +1,5 @@
 import { Button, Modal, Spinner, Tab, Tabs, Toast } from "react-bootstrap";
+import { invoke } from "@tauri-apps/api/tauri";
 
 import React from "react";
 import RstbEditor from "./RstbEditor.jsx";
@@ -24,6 +25,33 @@ class App extends React.Component {
         this.sarcRef = React.createRef();
         // document.oncontextmenu = () => false;
     }
+
+    componentDidMount = async () => {
+        let hasArgs = invoke("has_args");
+        if (hasArgs) {
+            this.setLoading(true);
+            let argFile = await invoke("open_args");
+            if (!argFile) return;
+            switch (argFile.type) {
+                case "yaml":
+                    this.setTab("yaml");
+                    window.openYaml({ ...argFile.data, path: argFile.path });
+                    break;
+                case "sarc":
+                    this.setTab("sarc");
+                    window.openSarc({ ...argFile.data, path: argFile.path });
+                    break;
+                case "rstb":
+                    this.setTab("rstb");
+                    console.log(argFile.data);
+                    window.openRstb({ ...argFile.data, path: argFile.path });
+                    break;
+                default:
+                    break;
+            }
+            this.setLoading(false);
+        }
+    };
 
     setTab = tab => {
         this.setState({ openTab: tab });

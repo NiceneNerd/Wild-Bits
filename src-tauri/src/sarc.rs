@@ -78,7 +78,7 @@ pub(crate) fn create_sarc(state: State<'_>, big_endian: bool, alignment: u8) -> 
 #[tauri::command(async)]
 pub(crate) fn save_sarc(state: State<'_>, file: String) -> Result<()> {
     let file = PathBuf::from(file);
-    let mut writer = SarcWriter::from(state.lock().unwrap().open_sarc.as_ref().unwrap());
+    let writer = SarcWriter::from(state.lock().unwrap().open_sarc.as_ref().unwrap());
     let data = writer.to_binary();
     fs::write(&file, {
         if util::should_compress(&file) {
