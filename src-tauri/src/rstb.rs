@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{AppError, State, Result, Rstb};
+use crate::{AppError, Result, Rstb, State};
 use rstb::{calc, Endian, ResourceSizeTable};
 use serde_json::{json, Value};
 use std::fs;
@@ -66,7 +66,7 @@ pub(crate) fn save_rstb(state: State<'_>, file: String) -> Result<()> {
         .table
         .to_binary(
             table.endian,
-            path.extension().unwrap().to_string_lossy().starts_with("s"),
+            path.extension().unwrap().to_string_lossy().starts_with('s'),
         )
         .map_err(|e| AppError::from(format!("Could not save RSTB: {:?}", e).as_str()))?;
     fs::write(path, &data).map_err(|_| AppError::from("Failed to save RSTB"))?;
@@ -94,11 +94,7 @@ pub(crate) fn calc_size(state: State<'_>, file: String) -> Result<u32> {
 }
 
 #[tauri::command]
-pub(crate) fn set_size(
-    state: State<'_>,
-    path: String,
-    size: u32,
-) -> Result<()> {
+pub(crate) fn set_size(state: State<'_>, path: String, size: u32) -> Result<()> {
     let mut state = state.lock().unwrap();
     let table = state.open_rstb.as_mut().unwrap();
     table.table.set_size(&path, size);
