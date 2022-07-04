@@ -116,10 +116,28 @@ pub(crate) fn open_args(state: State<'_>) -> Value {
 }
 
 fn main() {
+    let data_dir = tauri::api::path::config_dir().unwrap().join("wildbits");
+    let name_file = data_dir.join("names.json");
+    let name_table = match std::fs::read_to_string(&name_file)
+        .map_err(|e| AppError::from(format!("Failed to open name table: {:?}", e)))
+        .and_then(|names| {
+            serde_json::from_str::<std::collections::HashMap<u32, String>>(&names)
+                .map_err(|e| AppError::from(format!("Failed to parse name table: {:?}", e)))
+        }) {
+        Ok(name_table) => ::rstb::json::STOCK_NAMES
+            .iter()
+            .chain(name_table.iter())
+            .map(|(k, v)| (*k, v.clone()))
+            .collect(),
+        Err(e) => {
+            println!("Failed to load custom name table: {:?}", e);
+            ::rstb::json::STOCK_NAMES.clone()
+        }
+    };
     tauri::Builder::default()
         .manage(Mutex::new(AppState {
             open_rstb: None,
-            name_table: ::rstb::json::STOCK_NAMES.clone(),
+            name_table,
             open_sarc: None,
             hash_table: None,
             open_yml: None,
@@ -132,6 +150,8 @@ fn main() {
             rstb::set_size,
             rstb::delete_entry,
             rstb::add_name,
+            rstb::scan_mod,
+            rstb::flush_names,
             sarc::open_sarc,
             sarc::create_sarc,
             sarc::save_sarc,

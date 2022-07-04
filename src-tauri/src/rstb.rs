@@ -1,6 +1,8 @@
 use std::path::Path;
 
 use crate::{AppError, Result, Rstb, State};
+use botw_utils::extensions::SARC_EXTS;
+use roead::sarc::Sarc;
 use rstb::{calc, Endian, ResourceSizeTable};
 use serde_json::{json, Value};
 use std::fs;
@@ -26,13 +28,19 @@ fn parse_rstb<P: AsRef<Path>>(file: P) -> Result<Rstb> {
     Err("Invalid RSTB file".into())
 }
 
-fn rstb_to_json(table: &ResourceSizeTable) -> Value {
+fn rstb_to_json(
+    table: &ResourceSizeTable,
+    name_table: &std::collections::HashMap<u32, String>,
+) -> Value {
     Value::Object(
         table
             .hash_entries()
             .map(|(h, v)| {
                 (
-                    rstb::json::string_from_hash(*h),
+                    match name_table.get(&h) {
+                        Some(s) => s.to_owned(),
+                        None => h.to_string(),
+                    },
                     Value::Number(serde_json::Number::from(*v)),
                 )
             })
@@ -50,7 +58,7 @@ pub(crate) fn open_rstb(state: State<'_>, file: String) -> Result<Value> {
     let table = parse_rstb(&file)?;
     let res = json!({
         "path": file,
-        "rstb": rstb_to_json(&table.table),
+        "rstb": rstb_to_json(&table.table, &state.lock().unwrap().name_table),
         "be": matches!(table.endian, Endian::Big)
     });
     state.lock().unwrap().open_rstb = Some(table);
@@ -117,4 +125,90 @@ pub(crate) fn add_name(state: State<'_>, name: String) -> u32 {
     let hash = crc::crc32::checksum_ieee(name.as_bytes());
     state.lock().unwrap().name_table.insert(hash, name);
     hash
+}
+
+#[tauri::command(async)]
+pub(crate) fn scan_mod(state: State<'_>, path: String) -> Result<()> {
+    use rayon::prelude::*;
+    let files = glob::glob(&Path::new(&path).join("**/*.*").to_string_lossy())
+        .unwrap()
+        .filter_map(|f| f.ok())
+        .filter(|f| f.is_file())
+        .collect::<Vec<_>>();
+
+    fn get_nested_names(sarc: &Sarc) -> Vec<String> {
+        sarc.files()
+            .filter_map(|file| {
+                file.name().map(|name| -> Vec<String> {
+                    let mut names = vec![botw_utils::get_canon_name_without_root(name)];
+                    if file.data().len() > 0x40
+                        && file.is_sarc()
+                        && !(name.ends_with("sarc")
+                            || name.ends_with("farc")
+                            || name.ends_with("larc"))
+                    {
+                        if let Ok(nest_sarc) = file.parse_as_sarc() {
+                            names.extend(get_nested_names(&nest_sarc))
+                        }
+                    }
+                    names
+                })
+            })
+            .flatten()
+            .collect()
+    }
+
+    files.into_par_iter().try_for_each(|file| -> Result<()> {
+        if let Some(canon) = botw_utils::get_canon_name(&file) {
+            state.lock().unwrap().name_table.insert(
+                crc::crc32::checksum_ieee(file.to_string_lossy().as_bytes()),
+                canon,
+            );
+        }
+        if SARC_EXTS.contains(
+            &file
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .unwrap_or("Dummy"),
+        ) {
+            if let Ok(sarc) = std::fs::read(&file)
+                .map_err(|_| ())
+                .and_then(|data| Sarc::read(data).map_err(|_| ()))
+            {
+                let names = get_nested_names(&sarc);
+                names.into_iter().for_each(|name| {
+                    state
+                        .lock()
+                        .unwrap()
+                        .name_table
+                        .insert(crc::crc32::checksum_ieee(name.as_bytes()), name);
+                });
+            }
+        }
+        Ok(())
+    })?;
+
+    flush_names(state)?;
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub(crate) fn flush_names(state: State<'_>) -> Result<()> {
+    let state = state.lock().unwrap();
+    if ::rstb::json::STOCK_NAMES.ne(&state.name_table) {
+        let data_dir = tauri::api::path::config_dir().unwrap().join("wildbits");
+        let name_file = data_dir.join("names.json");
+        if !data_dir.exists() {
+            fs::create_dir_all(data_dir).unwrap_or(());
+        }
+        let diff = state
+            .name_table
+            .iter()
+            .filter_map(|(k, v)| {
+                (!::rstb::json::STOCK_NAMES.contains_key(k)).then(|| (*k, v.clone()))
+            })
+            .collect::<std::collections::HashMap<u32, String>>();
+        fs::write(&name_file, serde_json::to_string(&diff).unwrap()).unwrap_or(());
+    }
+    Ok(())
 }

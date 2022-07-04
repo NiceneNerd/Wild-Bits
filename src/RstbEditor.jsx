@@ -3,6 +3,7 @@ import {
     Delete,
     Edit,
     FolderOpen,
+    ListAlt,
     OpenInNew,
     Save,
     SaveAlt,
@@ -246,6 +247,19 @@ class RstbEditor extends React.Component {
         );
     };
 
+    scan_mod = async () => {
+        const folder = await open({ directory: true });
+        if (!folder) return;
+        this.props.setLoading(true);
+        try {
+            await invoke("scan_mod", { path: folder });
+            this.props.showToast("Added mod files to name table");
+        } catch (err) {
+            this.props.onError(err);
+        }
+        this.props.setLoading(false);
+    };
+
     export_rstb = async () => {
         const file = await save({
             filters: [
@@ -337,6 +351,20 @@ class RstbEditor extends React.Component {
                                                 })
                                             }>
                                             <Search />
+                                        </Button>
+                                    </OverlayTrigger>
+                                    <OverlayTrigger
+                                        overlay={
+                                            <Tooltip>
+                                                Scan Mod for Resource Names…
+                                            </Tooltip>
+                                        }
+                                        placement="bottom">
+                                        <Button
+                                            variant="success"
+                                            disabled={!this.state.rstb}
+                                            onClick={this.scan_mod}>
+                                            <ListAlt />
                                         </Button>
                                     </OverlayTrigger>
                                     <OverlayTrigger

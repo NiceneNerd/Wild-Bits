@@ -1,5 +1,6 @@
 import { Button, Modal, Spinner, Tab, Tabs, Toast } from "react-bootstrap";
 import { invoke } from "@tauri-apps/api/tauri";
+import { listen } from "@tauri-apps/api/event";
 
 import React from "react";
 import RstbEditor from "./RstbEditor.jsx";
@@ -23,11 +24,11 @@ class App extends React.Component {
         window.setTab = this.setTab;
         this.yamlRef = React.createRef();
         this.sarcRef = React.createRef();
-        // document.oncontextmenu = () => false;
+        document.oncontextmenu = () => false;
     }
 
     componentDidMount = async () => {
-        let hasArgs = invoke("has_args");
+        let hasArgs = await invoke("has_args");
         if (hasArgs) {
             this.setLoading(true);
             let argFile = await invoke("open_args");
@@ -51,6 +52,10 @@ class App extends React.Component {
             }
             this.setLoading(false);
         }
+
+        await listen("tauri://close-requestederror", async event => {
+            await invoke("flush_names");
+        });
     };
 
     setTab = tab => {
