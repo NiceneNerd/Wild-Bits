@@ -4134,7 +4134,7 @@ dependencies = [
 
 [[package]]
 name = "wildbits"
-version = "2.0.0-beta1"
+version = "2.0.0-beta2"
 dependencies = [
  "anyhow",
  "backtrace",

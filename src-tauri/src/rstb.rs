@@ -37,7 +37,7 @@ fn rstb_to_json(
             .hash_entries()
             .map(|(h, v)| {
                 (
-                    match name_table.get(&h) {
+                    match name_table.get(h) {
                         Some(s) => s.to_owned(),
                         None => h.to_string(),
                     },
