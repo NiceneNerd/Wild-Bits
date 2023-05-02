@@ -118,7 +118,7 @@ pub(crate) fn open_args(state: State<'_>) -> Value {
 fn main() {
     let data_dir = tauri::api::path::config_dir().unwrap().join("wildbits");
     let name_file = data_dir.join("names.json");
-    let name_table = match std::fs::read_to_string(&name_file)
+    let name_table = match std::fs::read_to_string(name_file)
         .map_err(|e| AppError::from(format!("Failed to open name table: {:?}", e)))
         .and_then(|names| {
             serde_json::from_str::<std::collections::HashMap<u32, String>>(&names)

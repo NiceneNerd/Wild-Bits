@@ -77,7 +77,7 @@ pub(crate) fn save_rstb(state: State<'_>, file: String) -> Result<()> {
             path.extension().unwrap().to_string_lossy().starts_with('s'),
         )
         .map_err(|e| AppError::from(format!("Could not save RSTB: {:?}", e).as_str()))?;
-    fs::write(path, &data).map_err(|_| AppError::from("Failed to save RSTB"))?;
+    fs::write(path, data).map_err(|_| AppError::from("Failed to save RSTB"))?;
     Ok(())
 }
 
@@ -86,7 +86,7 @@ pub(crate) fn export_rstb(state: State<'_>, file: String) -> Result<()> {
     let state = state.lock().unwrap();
     let table = state.open_rstb.as_ref().unwrap();
     let text = table.table.to_text().unwrap();
-    fs::write(&file, text.as_bytes()).map_err(|_| AppError::from("Failed to save file"))?;
+    fs::write(file, text.as_bytes()).map_err(|_| AppError::from("Failed to save file"))?;
     Ok(())
 }
 
@@ -147,7 +147,7 @@ pub(crate) fn scan_mod(state: State<'_>, path: String) -> Result<()> {
                             || name.ends_with("farc")
                             || name.ends_with("larc"))
                     {
-                        if let Ok(nest_sarc) = file.parse_as_sarc() {
+                        if let Ok(nest_sarc) = file.parse_sarc() {
                             names.extend(get_nested_names(&nest_sarc))
                         }
                     }
@@ -173,7 +173,7 @@ pub(crate) fn scan_mod(state: State<'_>, path: String) -> Result<()> {
         ) {
             if let Ok(sarc) = std::fs::read(&file)
                 .map_err(|_| ())
-                .and_then(|data| Sarc::read(data).map_err(|_| ()))
+                .and_then(|data| Sarc::new(data).map_err(|_| ()))
             {
                 let names = get_nested_names(&sarc);
                 names.into_iter().for_each(|name| {
@@ -208,7 +208,7 @@ pub(crate) fn flush_names(state: State<'_>) -> Result<()> {
                 (!::rstb::json::STOCK_NAMES.contains_key(k)).then(|| (*k, v.clone()))
             })
             .collect::<std::collections::HashMap<u32, String>>();
-        fs::write(&name_file, serde_json::to_string(&diff).unwrap()).unwrap_or(());
+        fs::write(name_file, serde_json::to_string(&diff).unwrap()).unwrap_or(());
     }
     Ok(())
 }

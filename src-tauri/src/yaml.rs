@@ -3,7 +3,7 @@ use std::{fs, sync::Mutex};
 use msyt::Msyt;
 use once_cell::sync::Lazy;
 use roead::{
-    aamp::{names::NameTable, ParameterIO},
+    aamp::{NameTable, ParameterIO},
     byml::Byml,
     Endian,
 };
@@ -14,9 +14,9 @@ use crate::{util, AppError, Result, State, Yaml, YamlDoc, YamlEndian};
 static NAME_TABLE: Lazy<Mutex<NameTable>> = Lazy::new(|| Mutex::new(NameTable::new(true)));
 
 fn init_name_table() {
-    let mut table = NAME_TABLE.lock().unwrap();
-    if table.get_name(1596346337).is_none() {
-        (0..10000).for_each(|i| table.add_name(&format!("File{}", i)));
+    let table = NAME_TABLE.lock().unwrap();
+    if table.get_name(1596346337, 0, 0).is_none() {
+        (0..10000).for_each(|i| table.add_name(format!("File{}", i)));
     }
 }
 
@@ -24,7 +24,7 @@ fn init_name_table() {
 pub(crate) fn open_yaml(state: State<'_>, file: String) -> Result<Value> {
     parse_yaml(
         state,
-        &fs::read(&file).map_err(|_| AppError::from("Failed to open file"))?,
+        &fs::read(file).map_err(|_| AppError::from("Failed to open file"))?,
     )
 }
 
@@ -44,13 +44,13 @@ pub(crate) fn save_yaml(state: State<'_>, text: String, file: String) -> Result<
             sw.add_file(filename, data.to_vec());
         })
     } else {
-        fs::write(&file, data.to_vec()).map_err(|_| AppError::from("Failed to save file"))?;
+        fs::write(&file, &data).map_err(|_| AppError::from("Failed to save file"))?;
         Ok(json!({}))
     }
 }
 
 pub(crate) fn parse_yaml(state: State<'_>, data: &[u8]) -> Result<Value> {
-    let data = util::decompress_if(data).map_err(|_| AppError::from("Failed to decompress"))?;
+    let data = util::decompress_if(data);
     let yaml = Yaml::from_binary(&data)?;
     let y_type = match &yaml.doc {
         YamlDoc::Aamp(_) => {
@@ -92,13 +92,13 @@ impl Yaml {
     pub(crate) fn to_text(&self) -> String {
         match &self.doc {
             YamlDoc::Aamp(pio) => pio.to_text(),
-            YamlDoc::Byml(byml) => byml.to_text(),
+            YamlDoc::Byml(byml) => byml.to_text().unwrap(),
             YamlDoc::Msbt(msbt) => serde_yaml::to_string(msbt).unwrap(),
         }
     }
 
     pub(crate) fn from_binary(data: &[u8]) -> Result<Self> {
-        let data = util::decompress_if(data).map_err(|_| AppError::from("Failed to parse AAMP"))?;
+        let data = util::decompress_if(data);
         if &data[0..4] == b"AAMP" {
             let pio = ParameterIO::from_binary(&*data)
                 .map_err(|_| AppError::from("Failed to parse AAMP"))?;
