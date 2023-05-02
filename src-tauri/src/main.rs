@@ -74,7 +74,7 @@ pub(crate) enum YamlDoc {
 
 #[tauri::command]
 pub(crate) fn has_args() -> bool {
-    std::env::args().filter(|arg| arg == "--debug").count() > 1
+    std::env::args().filter(|arg| arg != "--debug").count() > 1
 }
 
 #[tauri::command(async)]
