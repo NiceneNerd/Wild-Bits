@@ -1,6 +1,6 @@
 [package]
 name = "wildbits"
-version = "2.0.0-beta2"
+version = "2.0.0-beta3"
 description = "Simple editor for BOTW file formats"
 authors = ["Caleb Smith <email@calebdixonsmith.top>"]
 license = "GPL-3.0-or-later"
