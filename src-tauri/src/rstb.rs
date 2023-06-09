@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use crate::{AppError, Result, Rstb, State};
+use crate::{util, AppError, Result, Rstb, State};
 use botw_utils::extensions::SARC_EXTS;
-use roead::sarc::Sarc;
+use roead::{aamp::hash_name, sarc::Sarc};
 use rstb::{calc, Endian, ResourceSizeTable};
 use serde_json::{json, Value};
 use std::fs;
@@ -10,7 +10,7 @@ use std::fs;
 fn parse_rstb<P: AsRef<Path>>(file: P) -> Result<Rstb> {
     let data = fs::read(file.as_ref()).map_err(|_| AppError::from("Could not read file"))?;
     for endian in &[rstb::Endian::Big, rstb::Endian::Little] {
-        let table = ResourceSizeTable::from_binary(&data, *endian)
+        let table = ResourceSizeTable::from_binary(roead::yaz0::decompress_if(&data))
             .map_err(|_| AppError::from("Invalid RSTB file"))?;
         let randoms = [
             "EventFlow/PictureMemory.bfevfl",
@@ -18,7 +18,7 @@ fn parse_rstb<P: AsRef<Path>>(file: P) -> Result<Rstb> {
             "Effect/FldObj_ScaffoldIronParts_A_01.esetlist",
             "Physics/TeraMeshRigidBody/MainField/9-8.hktmrb",
         ];
-        if randoms.iter().any(|e| table.is_in_table(e)) {
+        if randoms.iter().any(|e| table.contains(*e)) {
             return Ok(Rstb {
                 table,
                 endian: *endian,
@@ -34,11 +34,12 @@ fn rstb_to_json(
 ) -> Value {
     Value::Object(
         table
-            .hash_entries()
+            .crc_map
+            .iter()
             .map(|(h, v)| {
                 (
                     match name_table.get(h) {
-                        Some(s) => s.to_owned(),
+                        Some(s) => s.to_string(),
                         None => h.to_string(),
                     },
                     Value::Number(serde_json::Number::from(*v)),
@@ -46,8 +47,9 @@ fn rstb_to_json(
             })
             .chain(
                 table
-                    .name_entries()
-                    .map(|(n, v)| (n.to_owned(), Value::Number(serde_json::Number::from(*v)))),
+                    .name_map
+                    .iter()
+                    .map(|(n, v)| (n.to_string(), Value::Number(serde_json::Number::from(*v)))),
             )
             .collect(),
     )
@@ -70,13 +72,8 @@ pub(crate) fn save_rstb(state: State<'_>, file: String) -> Result<()> {
     let state = state.lock().unwrap();
     let table = state.open_rstb.as_ref().unwrap();
     let path = std::path::PathBuf::from(&file);
-    let data = table
-        .table
-        .to_binary(
-            table.endian,
-            path.extension().unwrap().to_string_lossy().starts_with('s'),
-        )
-        .map_err(|e| AppError::from(format!("Could not save RSTB: {:?}", e).as_str()))?;
+    let data = table.table.to_binary(table.endian);
+    let data = roead::yaz0::compress_if(&data, &path);
     fs::write(path, data).map_err(|_| AppError::from("Failed to save RSTB"))?;
     Ok(())
 }
@@ -85,17 +82,16 @@ pub(crate) fn save_rstb(state: State<'_>, file: String) -> Result<()> {
 pub(crate) fn export_rstb(state: State<'_>, file: String) -> Result<()> {
     let state = state.lock().unwrap();
     let table = state.open_rstb.as_ref().unwrap();
-    let text = table.table.to_text().unwrap();
+    let text = table.table.to_text();
     fs::write(file, text.as_bytes()).map_err(|_| AppError::from("Failed to save file"))?;
     Ok(())
 }
 
 #[tauri::command(async)]
 pub(crate) fn calc_size(state: State<'_>, file: String) -> Result<u32> {
-    Ok(calc::calculate_size(
+    Ok(calc::estimate_from_file(
         file,
         state.lock().unwrap().open_rstb.as_ref().unwrap().endian,
-        true,
     )
     .map_err(|e| AppError::from(format!("Failed to calculate: {:?}", e).as_str()))?
     .unwrap_or(0))
@@ -105,10 +101,8 @@ pub(crate) fn calc_size(state: State<'_>, file: String) -> Result<u32> {
 pub(crate) fn set_size(state: State<'_>, path: String, size: u32) -> Result<()> {
     let mut state = state.lock().unwrap();
     let table = state.open_rstb.as_mut().unwrap();
-    table.table.set_size(&path, size);
-    state
-        .name_table
-        .insert(crc::crc32::checksum_ieee(path.as_bytes()), path);
+    table.table.set(path.as_str(), size);
+    state.name_table.insert(hash_name(&path), path);
     Ok(())
 }
 
@@ -116,13 +110,13 @@ pub(crate) fn set_size(state: State<'_>, path: String, size: u32) -> Result<()> 
 pub(crate) fn delete_entry(state: State<'_>, path: String) -> Result<()> {
     let mut state = state.lock().unwrap();
     let table = state.open_rstb.as_mut().unwrap();
-    table.table.delete_entry(&path);
+    table.table.remove(path.as_str());
     Ok(())
 }
 
 #[tauri::command]
 pub(crate) fn add_name(state: State<'_>, name: String) -> u32 {
-    let hash = crc::crc32::checksum_ieee(name.as_bytes());
+    let hash = hash_name(&name);
     state.lock().unwrap().name_table.insert(hash, name);
     hash
 }
@@ -160,10 +154,11 @@ pub(crate) fn scan_mod(state: State<'_>, path: String) -> Result<()> {
 
     files.into_par_iter().try_for_each(|file| -> Result<()> {
         if let Some(canon) = botw_utils::get_canon_name(&file) {
-            state.lock().unwrap().name_table.insert(
-                crc::crc32::checksum_ieee(file.to_string_lossy().as_bytes()),
-                canon,
-            );
+            state
+                .lock()
+                .unwrap()
+                .name_table
+                .insert(hash_name(&file.to_string_lossy()), canon);
         }
         if SARC_EXTS.contains(
             &file
@@ -181,7 +176,7 @@ pub(crate) fn scan_mod(state: State<'_>, path: String) -> Result<()> {
                         .lock()
                         .unwrap()
                         .name_table
-                        .insert(crc::crc32::checksum_ieee(name.as_bytes()), name);
+                        .insert(hash_name(&name), name);
                 });
             }
         }
@@ -195,7 +190,7 @@ pub(crate) fn scan_mod(state: State<'_>, path: String) -> Result<()> {
 #[tauri::command(async)]
 pub(crate) fn flush_names(state: State<'_>) -> Result<()> {
     let state = state.lock().unwrap();
-    if ::rstb::json::STOCK_NAMES.ne(&state.name_table) {
+    if util::FILES.len() != state.name_table.len() {
         let data_dir = tauri::api::path::config_dir().unwrap().join("wildbits");
         let name_file = data_dir.join("names.json");
         if !data_dir.exists() {
@@ -204,9 +199,7 @@ pub(crate) fn flush_names(state: State<'_>) -> Result<()> {
         let diff = state
             .name_table
             .iter()
-            .filter_map(|(k, v)| {
-                (!::rstb::json::STOCK_NAMES.contains_key(k)).then(|| (*k, v.clone()))
-            })
+            .filter_map(|(k, v)| (!util::FILES.contains_key(k)).then(|| (*k, v.clone())))
             .collect::<std::collections::HashMap<u32, String>>();
         fs::write(name_file, serde_json::to_string(&diff).unwrap()).unwrap_or(());
     }

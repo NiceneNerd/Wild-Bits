@@ -1,32 +1,32 @@
 [package]
 name = "wildbits"
-version = "2.0.0-beta3"
+version = "2.0.0"
 description = "Simple editor for BOTW file formats"
 authors = ["Caleb Smith <email@calebdixonsmith.top>"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/NiceneNerd/wildbits-rs"
 default-run = "wildbits"
-edition = "2018"
+edition = "2021"
 build = "src/build.rs"
 
 [build-dependencies]
 tauri-build = { version = "1.0.2", features = [] }
 
 [dependencies]
-anyhow = "1.0.40"
+anyhow = "1.0"
 backtrace = "0.3.59"
-botw-utils = "0.3.1"
-crc = "1.8.1"
+botw-utils = "0.5.0"
 glob = "0.3.0"
-msyt = { git = "https://github.com/NiceneNerd/msyt", rev = "f5d0c6e33cc8d12d66f1dd0d329ecf00bcbb9c51" }
-once_cell = "1.12.0"
-rayon = "1.5.3"
-rstb = "0.2.2"
-roead = { version = "0.21.0", features = ["yaml", "byml7"] }
+include-bytes-zstd = "0.1.0"
+msyt = { git = "https://github.com/NiceneNerd/msyt", tag = "v1.3.0" }
+once_cell = "1.18"
+rayon = "1.7"
+rstb = { version = "0.8.1", features = ["json"] }
+roead = { version = "0.23.0", features = ["yaml"] }
 serde_json = "1.0"
-serde_yaml = "0.8.17"
+serde_yaml = "0.9.21"
 serde = { version = "1.0", features = [ "derive" ] }
-tauri = { version = "1.0.2", features = ["api-all"] }
+tauri = { version = "1.3.0", features = ["api-all"] }
 
 [features]
 default = [ "custom-protocol" ]

@@ -92,7 +92,7 @@ impl Yaml {
     pub(crate) fn to_text(&self) -> String {
         match &self.doc {
             YamlDoc::Aamp(pio) => pio.to_text(),
-            YamlDoc::Byml(byml) => byml.to_text().unwrap(),
+            YamlDoc::Byml(byml) => byml.to_text(),
             YamlDoc::Msbt(msbt) => serde_yaml::to_string(msbt).unwrap(),
         }
     }

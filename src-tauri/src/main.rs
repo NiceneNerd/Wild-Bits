@@ -84,8 +84,12 @@ pub(crate) fn open_args(state: State<'_>) -> Value {
         if let Some(ext) = std::path::Path::new(&file)
             .extension()
             .and_then(|ext| ext.to_str())
+            .map(|ext| ext.trim_end_matches(".zs"))
         {
-            if AAMP_EXTS.contains(&ext) || BYML_EXTS.contains(&ext) || ext == "msbt" {
+            if AAMP_EXTS.contains(&ext)
+                || BYML_EXTS.contains(&ext)
+                || matches!(ext, "msbt" | "bgyml")
+            {
                 if let Ok(yaml) = yaml::open_yaml(state, file.clone()) {
                     return json!({
                         "type": "yaml",
@@ -124,14 +128,17 @@ fn main() {
             serde_json::from_str::<std::collections::HashMap<u32, String>>(&names)
                 .map_err(|e| AppError::from(format!("Failed to parse name table: {:?}", e)))
         }) {
-        Ok(name_table) => ::rstb::json::STOCK_NAMES
+        Ok(name_table) => util::FILES
             .iter()
-            .chain(name_table.iter())
-            .map(|(k, v)| (*k, v.clone()))
+            .map(|(k, v)| (*k, v.to_string()))
+            .chain(name_table.into_iter())
             .collect(),
         Err(e) => {
             println!("Failed to load custom name table: {:?}", e);
-            ::rstb::json::STOCK_NAMES.clone()
+            util::FILES
+                .iter()
+                .map(|(k, v)| (*k, v.to_string()))
+                .collect()
         }
     };
     tauri::Builder::default()

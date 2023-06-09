@@ -27,14 +27,21 @@ fn create_tree(
     for file in sarc.files() {
         if let Some(name) = file.name() {
             let name = name.trim_start_matches('/');
-            if hash_table.is_file_modded(&name.replace(".s", "."), file.data(), true) {
+            if hash_table.is_file_modded(
+                name.replace(".s", ".").trim_end_matches(".zs"),
+                file.data(),
+                true,
+            ) {
                 modified_files.insert(name.to_string());
             }
             let mut path_parts: Vec<String> = name.split('/').map(|p| p.to_owned()).collect();
             if start_slash {
                 path_parts.first_mut().unwrap().insert(0, '/');
             }
-            let magic = &file.data()[0..4];
+            if file.data.len() < 4 {
+                continue;
+            }
+            let magic = &file.data()[..4];
             let mut nest_tree: Map<String, Value> = Map::new();
             if magic == b"SARC" || (magic == b"Yaz0" && &file.data()[0x11..0x15] == b"SARC") {
                 let nest_sarc = Sarc::new(file.data())
@@ -99,21 +106,32 @@ pub(crate) fn get_file_meta(
     let sarc = state.open_sarc.as_ref().unwrap();
     let data = open_nested_file(sarc, &file)?;
     let path = PathBuf::from(&file);
-    let ext = path.extension().unwrap().to_str().unwrap();
+    let ext = path
+        .extension()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .trim_end_matches(".zs");
     Ok(json!({
         "file": path.file_name().unwrap().to_str().unwrap(),
-        "rstb": ::rstb::calc::calculate_size_with_ext(
+        "rstb": rstb::calc::estimate_from_slice_and_name(
             &data,
-            ext,
+            path.file_name().and_then(|n| n.to_str()).unwrap_or_default(),
             match sarc.endian() {
                 Endian::Big => ::rstb::Endian::Big,
                 Endian::Little => ::rstb::Endian::Little,
             },
-            true,
         ),
         "size": data.len(),
-        "modified": state.hash_table.as_ref().unwrap().is_file_modded(file.replace(".s", "."), data, true),
-        "is_yaml": AAMP_EXTS.contains(&ext) || BYML_EXTS.contains(&ext) || ext == "msbt"
+        "modified": state.hash_table
+            .as_ref()
+            .unwrap()
+            .is_file_modded(
+                file.replace(".s", ".").trim_end_matches(".zs"),
+                data,
+                true
+            ),
+        "is_yaml": AAMP_EXTS.contains(&ext) || BYML_EXTS.contains(&ext) || matches!(ext, "msbt" | "bgyml")
     }))
 }
 
