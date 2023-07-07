@@ -84,3 +84,7 @@ Building from source requires, in *addition* to the general prerequisites:
 -   Rust/Cargo (MSRV 1.61)
 
 Wild Bits is a Tauri app, so you can install the Tauri CLI with `npm i -g @tauri-apps/cli` or `cargo install tauri-cli`. Then run `npm install` to install the NPM packages. From there `tauri dev` will launch Wild Bits in development mode (dev tools enabled and "hot-ish" reloading), and `tauri build` will compile a release build.
+
+## Pip Installation
+
+Install Wild-Bits with `pip install wildbits` or `pip3 install wildbits` then type `wildbits` in the console to run the program. 
